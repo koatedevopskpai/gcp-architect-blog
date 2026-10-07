@@ -1,0 +1,33 @@
+name: Preview Deploy (PR)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write # keyless: mint OIDC token for Workload Identity Federation
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/495127995935/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: gh-actions-deploy@gcp-architect-blog.iam.gserviceaccount.com
+
+      - name: Deploy preview channel
+        run: npx --yes firebase-tools@latest hosting:channel:deploy pr-${{ github.event.number }} --project gcp-architect-blog --expires 7d
