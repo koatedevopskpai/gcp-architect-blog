@@ -23,3 +23,15 @@ Thumbs.db
 
 # local screenshots / large evidence dumps
 public/evidence/**/*.mp4
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# Firebase
+.firebase/
+

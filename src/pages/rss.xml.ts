@@ -11,7 +11,7 @@ export async function GET(context: APIContext) {
     title: "Koate Kpai — GCP Architecture",
     description:
       "Production-grade GCP architecture and platform engineering patterns, backed by working code.",
-    site: context.site ?? "https://koate-gcp.web.app",
+    site: context.site ?? "https://gcp-architect-blog.web.app",
     items: posts.map((post) => ({
       title: post.data.title,
       description: post.data.description,

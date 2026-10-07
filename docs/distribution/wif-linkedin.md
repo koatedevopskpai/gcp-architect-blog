@@ -1,7 +1,7 @@
 # LinkedIn post — Workload Identity Federation: GitHub Actions → GCP
 
 Link target:
-`https://<your-site>/posts/security-iam/001-workload-identity-federation-github-to-gcp/`
+`https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/`
 
 ---
 
@@ -31,7 +31,7 @@ I wired it end to end with Terraform:
 
 Proof tier 2: the Terraform applies for real, the workflow authenticates for real.
 
-Read it here: <LINK>
+Read it here: https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
 
 #GCP #Security #IAM #DevSecOps #Terraform
 
@@ -50,7 +50,7 @@ There's a better way, GA for years:
 
 Full Terraform, failure modes, audit queries, and a revocation playbook:
 
-<LINK>
+https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
 
 #GCP #CloudSecurity #DevOps #GitHubActions
 
@@ -70,7 +70,7 @@ WIF changes the answer to:
 → revocable by deleting one IAM binding
 
 Full production pattern — Terraform, failure modes, audit query, revocation
-playbook, Well-Architected mapping: <LINK>
+playbook, Well-Architected mapping: https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
 
 #GCP #Security #SRE #CloudArchitecture
 

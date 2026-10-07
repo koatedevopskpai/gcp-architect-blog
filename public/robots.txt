@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://koate-gcp.web.app/sitemap-index.xml
+Sitemap: https://gcp-architect-blog.web.app/sitemap-index.xml
