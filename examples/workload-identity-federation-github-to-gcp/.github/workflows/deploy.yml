@@ -1,0 +1,33 @@
+# Sample keyless deployment workflow.
+# Copy to .github/workflows/deploy.yml in your own repository and replace the
+# two values below with `terraform output -json auth_snippet`.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # REQUIRED to mint the OIDC token
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github
+          service_account: github-ci@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify identity
+        run: |
+          gcloud auth list
+          # Any read the SA's roles allow; run.admin covers run.services.list.
+          gcloud run services list --region=us-central1

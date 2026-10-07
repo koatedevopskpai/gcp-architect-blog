@@ -1,0 +1,31 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import { slugify } from "../../lib/utils";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts", ({ data }) => !data.draft);
+  const tags = new Set<string>();
+  for (const post of posts) for (const tag of post.data.tags) tags.add(slugify(tag));
+  return [...tags].map((tag) => ({ params: { tag }, props: { tag } }));
+}
+
+interface Props {
+  tag: string;
+}
+
+const { tag } = Astro.props;
+const posts = (
+  await getCollection("posts", ({ data }) => !data.draft && data.tags.some((t) => slugify(t) === tag))
+).sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+---
+
+<BaseLayout title={`#${tag}`} description={`Posts tagged ${tag}.`}>
+  <h1>#{tag}</h1>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li><PostCard post={post} /></li>
+    ))}
+  </ul>
+</BaseLayout>

@@ -1,0 +1,24 @@
+---
+import { categories, type CategoryKey } from "../data/categories";
+
+interface Props {
+  category: CategoryKey;
+  link?: boolean;
+}
+
+const { category, link = true } = Astro.props;
+const meta = categories[category];
+const href = `/categories/${category}/`;
+---
+
+{link ? (
+  <a class="badge" href={href}>
+    <span class="badge-letter">{meta.letter}</span>
+    <span>{meta.label}</span>
+  </a>
+) : (
+  <span class="badge">
+    <span class="badge-letter">{meta.letter}</span>
+    <span>{meta.label}</span>
+  </span>
+)}
