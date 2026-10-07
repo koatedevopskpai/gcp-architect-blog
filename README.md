@@ -72,7 +72,7 @@ src/
   content.config.ts        # posts schema (Astro v5 glob loader)
   data/categories.ts       # 7 pillars + derived A-G letters
   content/posts/           # one collection, nested by pillar on disk
-  layouts/                 # BaseLayout, PostLayout (Qiita-style)
+  layouts/                 # BaseLayout, PostLayout
   components/              # CategoryBadge, TagList, TableOfContents, Callout, PostCard
   pages/                   # index, posts, categories, tags, about, rss, 404
 examples/<slug>/           # companion Terraform + workflows per post
