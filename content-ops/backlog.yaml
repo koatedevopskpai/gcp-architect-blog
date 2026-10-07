@@ -1,0 +1,154 @@
+# Editorial backlog. Scored by `npm run score`.
+# proofTier: 1 = live run, 2 = code proof, 3 = reference
+# requiresOrg: true -> scheduled last (needs a GCP organization)
+topics:
+  - id: "001"
+    title: "Workload Identity Federation from GitHub Actions to GCP"
+    category: "security-iam"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 2
+    proofTier: 2
+    requiresOrg: false
+
+  - id: "002"
+    title: "Cloud Run golden path: Terraform + CI/CD + SLOs"
+    category: "platform-engineering-idp"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 3
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "003"
+    title: "SLOs for Cloud Run: latency, availability, multi-window alerts"
+    category: "sre-reliability"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 3
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "004"
+    title: "Multi-window multi-burn-rate alerting on GCP with Terraform"
+    category: "sre-reliability"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 4
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "005"
+    title: "BigQuery partitioning and clustering: a cost benchmark"
+    category: "data-mlops"
+    impact: 4
+    demand: 4
+    confidence: 5
+    effort: 3
+    proofTier: 2
+    requiresOrg: false
+
+  - id: "006"
+    title: "Pub/Sub to Dataflow to BigQuery: an exactly-once pipeline"
+    category: "data-mlops"
+    impact: 4
+    demand: 4
+    confidence: 4
+    effort: 4
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "007"
+    title: "RAG on GCP under budget: Cloud Run + pgvector + Vertex AI"
+    category: "data-mlops"
+    impact: 5
+    demand: 5
+    confidence: 4
+    effort: 4
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "008"
+    title: "Multi-region failover with a global load balancer"
+    category: "multicloud-enterprise"
+    impact: 5
+    demand: 5
+    confidence: 4
+    effort: 5
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "009"
+    title: "GCP cost guardrails: labels, budgets, and anomaly alerts"
+    category: "finops"
+    impact: 4
+    demand: 4
+    confidence: 5
+    effort: 3
+    proofTier: 1
+    requiresOrg: false
+
+  - id: "010"
+    title: "Terraform remote state on GCS: bootstrap and locking"
+    category: "platform-engineering-idp"
+    impact: 4
+    demand: 4
+    confidence: 5
+    effort: 2
+    proofTier: 2
+    requiresOrg: false
+
+  - id: "011"
+    title: "A DevSecOps Cloud Build pipeline: build, Checkov, Trivy, SBOM, gate"
+    category: "platform-engineering-idp"
+    impact: 5
+    demand: 4
+    confidence: 5
+    effort: 3
+    proofTier: 2
+    requiresOrg: false
+
+  - id: "012"
+    title: "Cloud Run canary deployments with traffic splitting"
+    category: "sre-reliability"
+    impact: 4
+    demand: 4
+    confidence: 5
+    effort: 2
+    proofTier: 1
+    requiresOrg: false
+
+  # --- Phase 1B: org-gated (scheduled last) ---
+  - id: "013"
+    title: "Production GCP landing zone with Terraform: org, folders, projects"
+    category: "architecture-leadership"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 4
+    proofTier: 2
+    requiresOrg: true
+
+  - id: "014"
+    title: "Shared VPC for multi-team platforms: design and guardrails"
+    category: "platform-engineering-idp"
+    impact: 5
+    demand: 4
+    confidence: 5
+    effort: 3
+    proofTier: 2
+    requiresOrg: true
+
+  - id: "015"
+    title: "VPC Service Controls: perimeter design and leak testing"
+    category: "security-iam"
+    impact: 5
+    demand: 5
+    confidence: 4
+    effort: 4
+    proofTier: 2
+    requiresOrg: true

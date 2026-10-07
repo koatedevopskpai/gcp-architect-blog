@@ -1,0 +1,24 @@
+---
+import type { CollectionEntry } from "astro:content";
+import CategoryBadge from "./CategoryBadge.astro";
+import TagList from "./TagList.astro";
+import { formatDate, TIER_LABEL } from "../lib/utils";
+
+interface Props {
+  post: CollectionEntry<"posts">;
+}
+
+const { post } = Astro.props;
+const { title, description, category, tags, publishDate, proofTier } = post.data;
+---
+
+<article class="post-card">
+  <div class="post-card-meta">
+    <CategoryBadge category={category} />
+    <time datetime={publishDate.toISOString()}>{formatDate(publishDate)}</time>
+    <span class="tier" title={TIER_LABEL[proofTier].desc}>T{proofTier} · {TIER_LABEL[proofTier].label}</span>
+  </div>
+  <h2><a href={`/posts/${post.id}/`}>{title}</a></h2>
+  <p>{description}</p>
+  <TagList tags={tags} />
+</article>

@@ -1,0 +1,26 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { CATEGORY_KEYS, categories } from "../../data/categories";
+
+const posts = await getCollection("posts", ({ data }) => !data.draft);
+const counts = Object.fromEntries(
+  CATEGORY_KEYS.map((key) => [key, posts.filter((p) => p.data.category === key).length]),
+);
+---
+
+<BaseLayout title="Pillars" description="The seven GCP architecture pillars covered on this blog.">
+  <h1>Pillars</h1>
+  <ul class="pillar-grid">
+    {CATEGORY_KEYS.map((key) => (
+      <li class="pillar-card">
+        <a href={`/categories/${key}/`}>
+          <span class="badge-letter">{categories[key].letter}</span>
+          <span class="pillar-label">{categories[key].label}</span>
+          <span class="pillar-count">{counts[key]} post{counts[key] === 1 ? "" : "s"}</span>
+        </a>
+        <p>{categories[key].description}</p>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
