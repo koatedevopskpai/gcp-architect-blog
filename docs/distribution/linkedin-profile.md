@@ -93,7 +93,7 @@ Currently consulting as an AI/Data Engineer at Galland Limited and writing deep,
 
 Open to platform/DevOps and cloud engineering roles and contracts.
 
-Blog: <blog link> · GitHub: <github link>
+Blog: <blog link — pending Firebase> · GitHub: https://github.com/koatedevopskpai/gcp-architect-blog
 ```
 
 ---
