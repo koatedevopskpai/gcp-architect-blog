@@ -75,7 +75,22 @@ scripts\blog-deploy.ps1
 
 The default Hosting site is provisioned automatically on first deploy.
 
-## 6. Custom domain (later)
+## 6. CI (keyless)
+
+The repo deploys itself via Workload Identity Federation — the exact pattern in
+the first post. No service-account keys anywhere (the org policy forbids them).
+
+- `.github/workflows/deploy.yml` — on push to `main`: build → `auth` (WIF) →
+  `firebase deploy`. Impersonates `gh-actions-deploy@gcp-architect-blog.iam.gserviceaccount.com`.
+- `.github/workflows/preview.yml` — on PR: deploys to a `pr-<number>` Hosting
+  channel, expires after 7 days.
+- `infra/cloudbuild/cloudbuild-blog.yaml` — Cloud Build alternative (requires a
+  GitHub trigger + one manual SA grant, noted in the file).
+
+Terraform for CI lives in `infra/terraform/hosting/ci.tf`:
+`terraform output ci_workload_identity_provider` + `ci_service_account_email`.
+
+## 7. Custom domain (later)
 
 Add in the Firebase console (or a `google_firebase_hosting_custom_domain`
 resource) — managed SSL is free.
