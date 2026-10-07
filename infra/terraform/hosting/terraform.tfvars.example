@@ -1,0 +1,5 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+project_id          = "gcp-architect-blog"
+org_id              = "YOUR_ORG_ID"
+billing_account_id  = "YOUR_BILLING_ACCOUNT_ID"
+budget_gbp          = 2

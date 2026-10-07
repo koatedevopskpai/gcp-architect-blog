@@ -5,7 +5,7 @@ import sitemap from "@astrojs/sitemap";
 
 // Update `site` to your Firebase Hosting URL (https://<site-id>.web.app) or custom domain.
 export default defineConfig({
-  site: "https://koate-gcp.web.app",
+  site: "https://gcp-architect-blog.web.app",
   integrations: [mdx(), sitemap()],
   markdown: {
     shikiConfig: {
