@@ -1,0 +1,33 @@
+# Alternative CI: Cloud Build (GitHub Actions is the primary/keyless path).
+#
+# Setup (one-time, manual):
+# 1. Enable Cloud Build API (done in project.tf) and run a trivial build so the
+#    Cloud Build SA exists: gcloud builds submit --no-source --config cb-init.yaml
+# 2. Grant the Cloud Build SA the deploy roles:
+#    gcloud projects add-iam-policy-binding gcp-architect-blog \
+#      --member=serviceAccount:service-495127995935@gs-project-accounts.iam.gserviceaccount.com \
+#      --role=roles/firebasehosting.admin
+#    ... and roles/firebase.viewer
+# 3. Create a Cloud Build trigger for this repo (branch: main, this config).
+steps:
+  - id: install
+    name: "node:22"
+    entrypoint: "npm"
+    args: ["ci"]
+
+  - id: build
+    name: "node:22"
+    entrypoint: "npm"
+    args: ["run", "build"]
+
+  - id: deploy
+    name: "node:22"
+    entrypoint: "npx"
+    args:
+      - "--yes"
+      - "firebase-tools@latest"
+      - "deploy"
+      - "--only"
+      - "hosting"
+      - "--project"
+      - "$PROJECT_ID"
