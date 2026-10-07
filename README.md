@@ -90,9 +90,8 @@ npm run build
 firebase deploy --only hosting
 ```
 
-> Infrastructure-as-code for the hosting project and CI pipelines are added in a
-> later phase (see the plan).
+> Deploy pipeline, keyless CI, and infra-as-code: see `docs/firebase-setup.md`.
 
 ## Licence
 
-Code: MIT. Prose: CC BY 4.0.
+This project is licensed under the [MIT License](LICENSE). © 2026 Koate Kpai.
