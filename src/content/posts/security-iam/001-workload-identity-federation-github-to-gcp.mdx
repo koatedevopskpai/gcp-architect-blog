@@ -44,7 +44,7 @@ auditable credentials — and prove it works.
 
 Service account keys are the most common long-lived credential leak in GCP. They
 never expire, they're easy to copy into CI secrets, and once compromised they
-work from anywhere on the internet.
+can be used from anywhere on the internet.
 
 **Workload Identity Federation (WIF)** removes them entirely. GitHub Actions
 issues a short-lived OIDC token per workflow run; WIF lets GCP trust that token
