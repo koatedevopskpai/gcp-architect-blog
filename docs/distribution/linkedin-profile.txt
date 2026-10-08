@@ -1,42 +1,61 @@
 =====================================================================
 LINKEDIN PROFILE — COPY-PASTE
-=====================================================================
-Sections below are ready to paste into the matching LinkedIn fields.
-Headline has a 220-character limit (Option A is ~163). Line breaks in
-About/Experience are preserved by LinkedIn.
+Positioning: Multicloud Platform & AI Implementation Engineer (AWS & GCP)
 =====================================================================
 
------ HEADLINE -----
-GCP Platform Engineer & Cloud Architect — Terraform · Cloud Run · GKE · IAM · SRE · FinOps | I also run production AI systems on GCP (RAG, agents, evals, Vertex AI)
+----- HEADLINE (220-char limit) -----
+Multicloud Platform & AI Implementation Engineer — AWS & GCP | Terraform · Kubernetes · RAG · Agents · Evals | Production systems on both clouds
 
 =====================================================================
 
 ----- ABOUT -----
-Most GCP and AI projects don't fail because of the model.
-They fail because the platform isn't production-ready: no CI/CD, no observability, keys in secrets, unpredictable cost, no SLOs, no identity boundaries.
+Most systems don't fail because of one cloud. They fail because nobody owns the
+whole stack across it — no IaC, no eval gates, no performance/cost guardrails,
+no runbook.
 
-I fix the platform so the product can ship.
+I build the platform on AWS and GCP, and the AI systems on top.
 
-I'm a Cloud Platform & DevOps Engineer focused on Google Cloud, with a bias for production reality over demos:
+Multicloud platform engineering:
+• Terraform-first infrastructure on AWS and GCP — Compute/VPC, EKS/GKE, Cloud Run, networking, IAM
+• Keyless CI/CD (Workload Identity Federation, GitHub Actions, Cloud Build), SRE/SLOs, observability
+• FinOps: labels, budgets, right-sizing — gcp-proof-platform runs under a hard $20/month budget
 
-• Platform: Terraform, Cloud Run, GKE Autopilot, Artifact Registry, Workload Identity Federation, VPC design
-• Delivery: Cloud Build & GitHub Actions, keyless CI/CD, SBOM + image scanning, policy-as-code gates
-• Reliability: SLOs, multi-window burn-rate alerting, dashboards, incident runbooks
-• Data & AI: BigQuery, Vertex AI, RAG, agents, evals — Python, TypeScript, C#
-• FinOps: labelled by default, hard budgets, right-sizing, cost guardrails
+AI implementation:
+• Production LLM systems: RAG, agents, evals — deterministic-first, evaluation-gated delivery
+• Products: LexiSum, Agentic RAG, Multi-Agent Optimizer (product + evals provenance; porting to AWS/GCP in progress)
+• Stack: Python, Vertex AI, SageMaker, pgvector, BigQuery, OpenAI APIs
 
-I build in public. Every pattern I write ships with working Terraform and real evidence — not slideware.
+Proof in public: gcp-architect-blog ships run-verified, code-first posts
+(Terraform + live evidence) — deployed keylessly from GitHub.
 
-Selected work:
-• gcp-proof-platform — production-grade GCP reference platform (Compute Engine, Cloud Run, GKE Autopilot, BigQuery, Cloud Build, Workload Identity Federation) built to a hard $20/month budget
-• ai-platform-proof — the AWS companion
-• LexiSum, Agentic RAG, Multi-Agent Optimizer — production LLM systems with evaluation gates
+Open to multicloud platform and AI-implementation roles and contracts.
 
-Currently consulting as an AI/Data Engineer at Galland Limited and writing deep, code-first GCP architecture notes.
+Blog: https://gcp-architect-blog.web.app · GitHub: https://github.com/koatedevopskpai
 
-Open to platform/DevOps and cloud engineering roles and contracts.
+=====================================================================
 
-Blog: https://gcp-architect-blog.web.app · GitHub: https://github.com/koatedevopskpai/gcp-architect-blog
+----- SKILLS (add ~30; order multicloud-first) -----
+Amazon Web Services (AWS), EC2, Amazon EKS, VPC, IAM, CloudFormation, Google Cloud Platform (GCP), Compute Engine, Google Kubernetes Engine (GKE), Cloud Run, BigQuery, Vertex AI, Terraform, Kubernetes, Docker, CI/CD, GitHub Actions, Cloud Build, Observability, Site Reliability Engineering (SRE), FinOps / Cloud Cost Optimization, Workload Identity Federation, LLM, RAG, Agents, Evaluation (Evals), Prompt Engineering, MLOps, Python, Amazon SageMaker, pgvector, TypeScript, SQL, Microsoft Azure
+
+Pinned top 5 (recruiters see these first): Terraform, Kubernetes, AWS, GCP, RAG.
+
+=====================================================================
+
+----- FEATURED (as Link cards, in order — max 5-6) -----
+1. gcp-proof-platform — https://github.com/koatedevopskpai/gcp-proof-platform
+2. ai-platform-proof — https://github.com/koatedevopskpai/ai-platform-proof
+3. Blog — https://gcp-architect-blog.web.app
+4. multi-agent-optimizer — https://github.com/koatedevopskpai/multi-agent-optimizer
+5. agentic-rag-portfolio — https://github.com/koatedevopskpai/agentic-rag-portfolio
+6. lexisum — https://github.com/koatedevopskpai/lexisum
+
+(Full Projects incl. llm-evals-demo + AWS/GCP/Azure multicloud set:
+docs/distribution/linkedin-projects.md)
+
+=====================================================================
+
+----- SERVICES SECTION -----
+Multicloud platform engineering (AWS & GCP) + AI implementation — RAG, agents, evals with eval gates, guardrails, and cost controls.
 
 =====================================================================
 
@@ -44,35 +63,19 @@ Blog: https://gcp-architect-blog.web.app · GitHub: https://github.com/koatedevo
 AI Data Engineer Consultant (Contract)
 Mar 2026 – Present · Greater London, England, United Kingdom · Remote
 
-• Design and ship production LLM/RAG pipelines in Python with deterministic-first architecture and automated evaluation gates.
-• Own delivery end to end: containerisation, infrastructure-as-code, CI/CD, and environment promotion.
-• Implement secure, keyless CI/CD using Workload Identity Federation (GitHub → GCP).
-• Build Terraform-first GCP infrastructure: Cloud Run, GKE Autopilot, Artifact Registry, and IAM boundaries.
-• Instrument systems with structured logging, metrics, SLOs, and evals.
-• Apply least-privilege IAM, cost controls, and zero-trust identity.
-• Stack: Python, Terraform, Docker, CI/CD, GCP/Azure, BigQuery/Postgres, LLM APIs.
+• Design and ship production LLM systems — RAG, agents, evals — deterministic-first with evaluation gates.
+• Own the delivery path end to end: Terraform-first infrastructure, keyless CI/CD, environment promotion.
+• Build secure, keyless deploys using Workload Identity Federation (GitHub → GCP).
+• Apply SRE practices — SLOs, multi-window burn-rate alerting, observability.
+• Drive FinOps: labels, budgets, right-sizing across cloud environments.
+• Porting flagship AI products to AWS & GCP (Vertex AI, SageMaker, pgvector).
+• Stack: Python, Terraform, Docker, CI/CD, AWS/GCP, BigQuery/pgvector, LLM APIs.
 
 =====================================================================
 
------ SKILLS (add 25+, order GCP-first; get 2–3 endorsements on Terraform, GCP, WIF) -----
-Google Cloud Platform (GCP), Compute Engine, Cloud Run, Google Kubernetes Engine (GKE / GKE Autopilot), Cloud Storage, Cloud SQL, BigQuery, Vertex AI, Terraform, Docker, Kubernetes, CI/CD, GitHub Actions, Cloud Build, Artifact Registry, Helm, Site Reliability Engineering (SRE), Observability, Monitoring & Alerting, SLOs, Incident Response, FinOps / Cloud Cost Optimization, Identity and Access Management (IAM), Workload Identity Federation, Cloud KMS, VPC, Zero Trust, Organization Policies, Python, TypeScript, C#/.NET, SQL, AWS, Microsoft Azure, LLM, RAG, Agents, MLOps, Data Engineering, Prompt Engineering, Evaluation (Evals)
-
-=====================================================================
-
------ FEATURED (add as Link cards) -----
-1. Workload Identity Federation from GitHub Actions to GCP
-   https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
-2. gcp-architect-blog
-   https://github.com/koatedevopskpai/gcp-architect-blog
-3. gcp-proof-platform
-   https://github.com/koatedevopskpai/gcp-proof-platform
-
-=====================================================================
-
------ ALSO DO (not pasted, just reminders) -----
-• Open to Work: set job preferences (GCP Platform Engineer, Cloud DevOps Engineer, SRE).
-• Custom URL: linkedin.com/in/koatekpai (if free).
-• Education: add your school/field (2023 – Present).
-• Banner: branded "GCP architecture, proven in production."
-• Publish the first post from docs/distribution/wif-linkedin.md (recommended variant).
+----- ALSO DO (reminders, not pasted) -----
+• Open to Work prefs: Cloud Platform / Multicloud Engineer / AI Implementation (AWS + GCP).
+• Custom URL: linkedin.com/in/koatekpai.
+• Banner: "Multicloud (AWS & GCP) — production platforms and the AI on top."
+• First social post = an AI/multicloud post (Blog 3); keep the WIF post for later.
 =====================================================================
