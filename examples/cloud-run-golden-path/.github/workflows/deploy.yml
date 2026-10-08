@@ -1,0 +1,39 @@
+# Keyless CI for the golden path demo (mirrors the repo's own deploy workflow).
+# Requires: a WIF pool/provider in gcp-architect-demo-2026 trusting this repo,
+# and a deploy SA with roles/run.developer + roles/artifactregistry.writer.
+name: Deploy Golden Path
+
+on:
+  push:
+    branches: [main]
+    paths: ["examples/cloud-run-golden-path/**"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/DEMO_PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
+          service_account: DEPLOY_SA@DEMO_PROJECT.iam.gserviceaccount.com
+
+      - name: Build and push image
+        run: |
+          cd examples/cloud-run-golden-path
+          gcloud builds submit --tag us-central1-docker.pkg.dev/gcp-architect-demo-2026/cloud-run-images/hello:${{ github.sha }} .
+
+      - name: Deploy
+        run: |
+          gcloud run deploy hello \
+            --image=us-central1-docker.pkg.dev/gcp-architect-demo-2026/cloud-run-images/hello:${{ github.sha }} \
+            --region=us-central1 --project=gcp-architect-demo-2026 --no-allow-unauthenticated=false

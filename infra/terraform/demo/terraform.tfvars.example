@@ -1,0 +1,4 @@
+project_id         = "gcp-architect-demo-2026"
+org_id             = "YOUR_ORG_ID"
+billing_account_id = "YOUR_BILLING_ACCOUNT_ID"
+budget_gbp         = 5
