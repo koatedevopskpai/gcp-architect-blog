@@ -272,8 +272,9 @@ steps:
 ```
 
 The math: a 99% SLO has a 1% error budget — roughly 7.2 hours of downtime per
-month. **Burning at 14.4× exhausts it in about 2 days** (30 ÷ 14.4), which is
-fast enough to page before customers feel it, yet slow enough not to fire on a
+month. **Burning at 14.4× exhausts the budget in about 2 days** (30 ÷ 14.4), which is
+rapid enough to trigger an on-call page before customers notice the impact, yet slow
+enough not to fire on a
 single blip. That's why multi-window (5m **and** 1h at 14.4×) is the standard:
 the short window catches fast deterioration, the long window catches sustained
 but smaller problems.
