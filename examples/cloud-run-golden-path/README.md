@@ -11,6 +11,25 @@ SLOs."* Proof tier **1** (applied live, then destroyed).
   **startup CPU boost**, TCP startup probe, public ingress
 - Availability **and** latency **SLOs** + a multi-window multi-burn-rate alert
   (the Qiita-inspired pattern on `google_monitoring_service`/`google_monitoring_slo`)
+- Burn alert wired to an email notification channel (`alert_email` var)
+
+## Hardening included
+
+- Artifact Registry is **labelled** (FinOps) and **vulnerability scanning** is on
+  by default in supported regions.
+- The runtime SA is granted **`roles/artifactregistry.reader`** so it can pull
+  self-hosted images (no Editor anywhere).
+- Tag **retention** (lifecycle) isn't exposed in the provider yet; set it with:
+
+  ```bash
+  gcloud artifacts repositories update cloud-run-images \
+    --project=gcp-architect-demo-2026 --location=us-central1 \
+    --cleanup-policy=examples/cloud-run-golden-path/lifecycle.yaml
+  ```
+
+  Use `keep last N digests` for a policy (sample: keep 20).
+- Concurrency is a workload decision; set it at deploy time (e.g. `--concurrency 80`)
+  rather than hard-coding it in the module.
 
 ## Usage
 
@@ -19,7 +38,8 @@ SLOs."* Proof tier **1** (applied live, then destroyed).
 gcloud config set project gcp-architect-demo-2026
 
 terraform init
-terraform apply -var="project_id=gcp-architect-demo-2026"
+terraform apply -var="project_id=gcp-architect-demo-2026" \
+  -var="alert_email=you@example.com"
 
 curl -s $(terraform output -raw service_url)
 ```

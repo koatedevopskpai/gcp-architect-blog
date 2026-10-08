@@ -79,7 +79,7 @@ gcloud config set project gcp-architect-demo-2026
 ### 1. Runtime service account + Artifact Registry
 
 The service runs as its own identity (never the default compute SA), and images
-live in one repo:
+live in one labelled registry. The runtime SA can pull images, nothing more:
 
 ```hcl
 resource "google_service_account" "hello" {
@@ -91,8 +91,21 @@ resource "google_artifact_registry_repository" "images" {
   location      = "us-central1"
   repository_id = "cloud-run-images"
   format        = "DOCKER"
+  labels = { finops_owner = "platform", env = "demo" }
+}
+
+resource "google_artifact_registry_repository_iam_member" "reader" {
+  project    = "gcp-architect-demo-2026"
+  location   = var.region
+  repository = google_artifact_registry_repository.images.id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.hello.email}"
 }
 ```
+
+Hardening that comes free or cheap: **vulnerability scanning is on by default**
+for Artifact Registry in supported regions, and tag-retention (keep last N
+digests) is a one-line lifecycle policy (see the example README).
 
 ### 2. The Cloud Run service (v2) with golden defaults
 
@@ -116,13 +129,34 @@ resource "google_cloud_run_v2_service" "hello" {
 
     scaling { min_instance_count = 0; max_instance_count = 5 }
 
+    # Bound stuck requests (opinionated default; tune per workload).
+    timeout = "30s"
+
     annotations = {
       # Faster cold starts: extra CPU during startup only.
-      "run.googleapis.com/startup-cpu-boost" = "true"
+      "run.googleapis.com/startup-cpu-boost"     = "true"
+      "run.googleapis.com/execution-environment" = "gen2"
     }
   }
 }
 ```
+
+### Golden defaults (opinionated)
+
+| Setting | Default | Rationale |
+|---|---|---|
+| CPU | 1 | Predictable autoscaling |
+| Memory | 512Mi | Minimum with always-allocated CPU |
+| Concurrency | set at deploy (`--concurrency 80`) | Workload decision, not a module opinion |
+| Timeout | 30s | Bound stuck requests |
+| Execution env | gen2 | Faster, more secure default |
+| Autoscaling | min 0 / max 5 | Scale-to-zero with a cost cap |
+| Startup | CPU boost + TCP probe | Quick cold starts, clean admission |
+| Identity | dedicated `hello-sa` | Least privilege, no default Editor |
+| Registry | labels + scanning | FinOps + supply-chain hygiene |
+
+_Treat these as sensible starting points, not universal truth — tune by workload
+and load test._
 
 <Callout type="note" title="Two gotchas from the live run">
 - Memory below 512 Mi is refused when CPU is always allocated — use `512Mi` or set
@@ -237,6 +271,18 @@ steps:
   - run: gcloud run deploy hello --image=us-central1-docker.pkg.dev/gcp-architect-demo-2026/cloud-run-images/hello:${{ github.sha }} --region=us-central1
 ```
 
+The math: a 99% SLO has a 1% error budget — roughly 7.2 hours of downtime per
+month. **Burning at 14.4× exhausts it in about 2 days** (30 ÷ 14.4), which is
+fast enough to page before customers feel it, yet slow enough not to fire on a
+single blip. That's why multi-window (5m **and** 1h at 14.4×) is the standard:
+the short window catches fast deterioration, the long window catches sustained
+but smaller problems.
+
+Wire a notification channel so the alert actually reaches someone — email or
+Slack via `google_monitoring_notification_channel`, referenced from the policy's
+`notification_channels`. The example wires email and defaults to
+`ops@example.com` until you set `alert_email`.
+
 ## Handling the live-run gotchas
 
 - **SLOs need traffic.** A dormant service produces no SLI data. Seed a small
@@ -273,6 +319,35 @@ steps:
 - Runtime identity on **GKE** (Workload Identity on GKE), jobs/batch
   (Cloud Run jobs), and **VPC egress** (Serverless VPC Access / PSC) — each is
   its own post.
+
+## Production checklist
+
+Copy this into a service PR template or onboarding docs:
+
+**Identity & delivery**
+- Dedicated runtime SA (no default Editor, no shared identities)
+- Keyless CI via Workload Identity Federation (no SA keys)
+- Artifact Registry: one repo, labels, scanning, tag retention
+
+**Service**
+- Scale-to-zero (min instances 0) with a max-instance cost cap
+- Startup CPU boost + startup probe
+- Timeout set; concurrency tuned by load test
+
+**Reliability**
+- Availability and latency SLOs bound to the service
+- Multi-window burn-rate alert on a real notification channel
+- Synthetic/uptime traffic so SLIs are never empty
+
+**Security**
+- Runtime SA limited to `artifactregistry.reader` (+ secrets as needed)
+- Secrets via Secret Manager per revision (never in the image)
+- Public ingress only for demos (IAP / PSC / Cloud Armor for prod)
+
+**FinOps**
+- Labels on every resource; service/project/billing-account budgets
+- Cost attributed per service; right-sizing reviewed after load tests
+- Throwaway resources torn down the same day
 
 ## Reproduce
 

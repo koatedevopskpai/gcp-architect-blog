@@ -29,6 +29,12 @@ variable "service_name" {
   default = "hello"
 }
 
+variable "alert_email" {
+  description = "Email address for the burn-rate alert (set a real one)"
+  type        = string
+  default     = "ops@example.com"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -52,6 +58,15 @@ resource "google_artifact_registry_repository" "images" {
   repository_id = "cloud-run-images"
   description   = "Container images for the golden path demo"
   format        = "DOCKER"
+
+  # FinOps: label every resource; this one also feeds the runtime SA reader grant.
+  labels = {
+    finops_owner = "platform"
+    env          = "demo"
+  }
+  # Note: vulnerability scanning is enabled by default for Artifact Registry in
+  # supported regions. Tag-retention (lifecycle policy) isn't exposed in the
+  # provider yet — see README for the gcloud one-liner.
 }
 
 # ---------------------------------------------------------------------------
@@ -61,6 +76,15 @@ resource "google_service_account" "hello" {
   account_id   = "hello-sa"
   display_name = "hello Cloud Run runtime"
   description  = "Runtime identity for the golden path Cloud Run service"
+}
+
+# The runtime SA may pull images from the registry (self-hosted images).
+resource "google_artifact_registry_repository_iam_member" "reader" {
+  project    = var.project_id
+  location   = var.region
+  repository = google_artifact_registry_repository.images.id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.hello.email}"
 }
 
 # ---------------------------------------------------------------------------
@@ -98,9 +122,14 @@ resource "google_cloud_run_v2_service" "hello" {
       max_instance_count = 5
     }
 
+    # Bound stuck requests (opinionated default; tune per workload).
+    timeout = "30s"
+
     annotations = {
       # Faster cold starts: extra CPU during startup only.
-      "run.googleapis.com/startup-cpu-boost" = "true"
+      "run.googleapis.com/startup-cpu-boost"     = "true"
+      # Second-generation execution environment (v2 default; explicit here).
+      "run.googleapis.com/execution-environment" = "gen2"
     }
   }
 
@@ -162,9 +191,19 @@ resource "google_monitoring_slo" "latency" {
 }
 
 # Multi-window multi-burn-rate alert on the availability SLO.
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Ops email"
+  type         = "email"
+  labels = {
+    email_address = var.alert_email
+  }
+}
+
 resource "google_monitoring_alert_policy" "burn_rate" {
   display_name = "${var.service_name} availability burn rate"
   combiner     = "AND"
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
 
   conditions {
     display_name = "fast burn (5m window)"
