@@ -69,6 +69,8 @@ resource "google_service_account" "hello" {
 resource "google_cloud_run_v2_service" "hello" {
   name     = var.service_name
   location = var.region
+  # Demo: allow terraform destroy (default is protected).
+  deletion_protection = false
 
   template {
     service_account = google_service_account.hello.email

@@ -1,0 +1,1 @@
+Cost estimate: Cloud Run scale-to-zero, ~1-2 min serving of 30 requests ˜ under GBP 0.01 (within the demo GBP 5 budget)
