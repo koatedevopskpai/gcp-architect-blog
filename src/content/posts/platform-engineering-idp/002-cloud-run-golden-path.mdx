@@ -1,0 +1,302 @@
+---
+title: "Cloud Run golden path: Terraform + CI/CD + SLOs"
+description: "One blessed way to ship Cloud Run: Terraform service, runtime SA, Artifact Registry, availability and latency SLOs with burn-alerting, and keyless CI — applied live."
+category: "platform-engineering-idp"
+tags: ["cloud-run", "terraform", "slo", "sre", "artifact-registry", "ci-cd"]
+publishDate: 2026-10-08
+draft: true
+impact: 5
+demand: 5
+confidence: 5
+effort: 3
+proofTier: 1
+requiresOrg: false
+codeRepo: "https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/cloud-run-golden-path"
+series: "cloud-run-golden-path"
+seriesOrder: 1
+---
+
+import Callout from "../../../components/Callout.astro";
+
+<Callout type="warn" title="The production problem this solves">
+Deploying a container to Cloud Run takes one command. **Operating** it in
+production takes more: a least-privilege identity, an image registry, SLOs that
+map to users, an alert when you burn the error budget, and CI that deploys
+without keys. Without those, you get a URL that works today and a pager that
+rings at 2am with no runbook.
+</Callout>
+
+**In one line:** one blessed path for shipping a Cloud Run service —
+Terraform service + runtime SA + Artifact Registry, availability **and** latency
+SLOs with burn-rate alerting, and keyless CI. Applied live, then destroyed.
+
+- **Who this is for:** platform/DevOps engineers who want the default way to
+  ship services, not a bespoke one per team.
+- **What you get:** a working `examples/cloud-run-golden-path` Terraform module,
+  a live-deployed service, SLOs + alert, a keyless CI sample, and a 3-tier
+  evidence trail.
+- **Proof level:** **tier 1** — applied live. The service ran at
+  `hello-5fqef65h6q-uc.a.run.app`, served HTTP 200, and took 30/30 seeded
+  requests, then was torn down.
+
+```
+repo ──▶ CI (keyless WIF) ──▶ Artifact Registry ──▶ Cloud Run (scale-to-zero)
+                                                        │
+                                                        ▼
+                                        Monitoring: availability + latency SLOs
+                                                        │
+                                                        ▼
+                                        burn-rate alert  ──▶  on-call
+```
+
+## Why this matters in production
+
+| Daily pain | Ad-hoc "just deploy it" | Golden path |
+|---|---|---|
+| Identity | Default compute SA (Editor) | Dedicated runtime SA, least privilege |
+| Image management | Wherever the last deploy came from | One Artifact Registry repo |
+| Availability | You find out when customers do | SLO + uptime visible |
+| Latency | Worse than your team knows | Latency SLO in the same dashboard |
+| Alerting | None / manual health checks | Multi-window burn-rate alert |
+| On-call | No runbook | Terraform is the source of truth |
+| Cost | Always-on instances mysteriously | Scale-to-zero, FinOps labels |
+
+Google itself frames the difference as **Reliability** and **Operational
+Excellence** pillars (see the Well-Architected mapping at the bottom).
+
+## Prerequisites
+
+- A GCP project with billing + Cloud Run API — I use the shared demo project
+  `gcp-architect-demo-2026`.
+- `gcloud` authenticated, Terraform >= 1.5, `google` provider `~> 6.0`.
+
+```bash
+gcloud config set project gcp-architect-demo-2026
+```
+
+## Steps
+
+### 1. Runtime service account + Artifact Registry
+
+The service runs as its own identity (never the default compute SA), and images
+live in one repo:
+
+```hcl
+resource "google_service_account" "hello" {
+  account_id   = "hello-sa"
+  display_name = "hello Cloud Run runtime"
+}
+
+resource "google_artifact_registry_repository" "images" {
+  location      = "us-central1"
+  repository_id = "cloud-run-images"
+  format        = "DOCKER"
+}
+```
+
+### 2. The Cloud Run service (v2) with golden defaults
+
+```hcl
+resource "google_cloud_run_v2_service" "hello" {
+  name     = "hello"
+  location = "us-central1"
+
+  template {
+    service_account = google_service_account.hello.email
+
+    containers {
+      image = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+      resources { limits = { cpu = "1", memory = "512Mi" } }
+      startup_probe {
+        tcp_socket { port = 8080 }
+        initial_delay_seconds = 0
+        period_seconds        = 5
+      }
+    }
+
+    scaling { min_instance_count = 0; max_instance_count = 5 }
+
+    annotations = {
+      # Faster cold starts: extra CPU during startup only.
+      "run.googleapis.com/startup-cpu-boost" = "true"
+    }
+  }
+}
+```
+
+<Callout type="note" title="Two gotchas from the live run">
+- Memory below 512 Mi is refused when CPU is always allocated — use `512Mi` or set
+  `run.googleapis.com/cpu-throttling: "true"`.
+- The v2 resource places `startup_probe` **inside `containers`** (v1 puts it on
+  the template).
+</Callout>
+
+### 3. Public ingress (demo) or IAP
+
+For a demo endpoint, allow invocations:
+
+```hcl
+resource "google_cloud_run_v2_service_iam_member" "invoker" {
+  project  = "gcp-architect-demo-2026"
+  location = google_cloud_run_v2_service.hello.location
+  name     = google_cloud_run_v2_service.hello.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+```
+
+For a real service, put IAP or an ingress destination network policy in front —
+`allUsers` is for demos only.
+
+### 4. SLOs — the pattern from the Qiita reference
+
+Bind a monitoring service to Cloud Run and define availability **and** latency
+SLOs:
+
+```hcl
+resource "google_monitoring_service" "hello" {
+  service_id   = "hello-slo"
+  display_name = "Cloud Run golden path (hello)"
+
+  basic_service {
+    service_type = "CLOUD_RUN"
+    service_labels = {
+      service_name = "hello"
+      location     = "us-central1"
+    }
+  }
+}
+
+resource "google_monitoring_slo" "availability" {
+  service             = google_monitoring_service.hello.service_id
+  slo_id              = "hello-availability"
+  goal                = 0.99
+  rolling_period_days = 30
+  basic_sli { availability { enabled = true } }
+}
+
+resource "google_monitoring_slo" "latency" {
+  service             = google_monitoring_service.hello.service_id
+  slo_id              = "hello-latency"
+  goal                = 0.95
+  rolling_period_days = 30
+  basic_sli { latency { threshold = "1s" } }
+}
+```
+
+The `threshold` is a protobuf duration — `1s`, not `800ms` (the API rejects
+`800ms`).
+
+### 5. Multi-window burn-rate alert
+
+Page before you actually exhaust the budget:
+
+```hcl
+resource "google_monitoring_alert_policy" "burn_rate" {
+  display_name = "hello availability burn rate"
+  combiner     = "AND"
+
+  conditions {
+    display_name = "fast burn (5m)"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", 5m)"
+      threshold_value = "14.4"
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+    }
+  }
+  conditions {
+    display_name = "slow burn (1h)"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", 1h)"
+      threshold_value = "14.4"
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+    }
+  }
+}
+```
+
+### 6. Keyless CI
+
+Same Workload Identity Federation pattern the blog itself runs on: GitHub
+Actions mints a short-lived token → impersonates a deploy SA → `gcloud builds
+submit` → `gcloud run deploy`. No service-account keys anywhere.
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+
+steps:
+  - uses: google-github-actions/auth@v2
+    with:
+      workload_identity_provider: projects/DEMO_PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
+      service_account: DEPLOY_SA@DEMO_PROJECT.iam.gserviceaccount.com
+  - run: gcloud builds submit --tag us-central1-docker.pkg.dev/gcp-architect-demo-2026/cloud-run-images/hello:${{ github.sha }} .
+  - run: gcloud run deploy hello --image=us-central1-docker.pkg.dev/gcp-architect-demo-2026/cloud-run-images/hello:${{ github.sha }} --region=us-central1
+```
+
+## Handling the live-run gotchas
+
+- **SLOs need traffic.** A dormant service produces no SLI data. Seed a small
+  load (e.g. Cloud Scheduler hitting `/`) before you screenshot the dashboard.
+- **Cold starts skew latency.** Capture a warm run; note the scale-to-zero
+  baseline in the chart.
+- **Cost stays tiny.** Scale-to-zero bills only when serving; my run was well
+  under $0.01. The demo project has an £5 budget guardrail.
+- **Teardown is part of the run.** `terraform destroy` — the demo was destroyed
+  the same day it was created (FinOps rule).
+
+## Operating it in production
+
+1. **Traffic for SLOs:** drive synthetic load (scheduler/uptime check) so SLIs
+   are real, not empty.
+2. **Dashboards:** wire `request_count`, `request_latencies`, and the SLO burn
+   into one ops dashboard — see the platform's `monitoring.tf` pattern.
+3. **Canary:** `gcloud run services update-traffic hello --to-revisions
+   hello-00001-xyz=90,hello-00002-abc=10` for gradual rollouts.
+4. **Secrets:** reference Secret Manager per revision — never bake env in the
+   image.
+
+## SLO / Security / FinOps notes
+
+- **Security:** the service runs as a dedicated `hello-sa` (no default Editor);
+  CI is keyless via WIF.
+- **Cost:** scale-to-zero by default; memory capped at 512 Mi keeps the bill minimal;
+  every resource is FinOps-labelled.
+- **Reliability:** availability + latency SLOs and a burn alert make "is the
+  service ok?" a dashboard, not a guess.
+
+## What this doesn't cover
+
+- Runtime identity on **GKE** (Workload Identity on GKE), jobs/batch
+  (Cloud Run jobs), and **VPC egress** (Serverless VPC Access / PSC) — each is
+  its own post.
+
+## Reproduce
+
+```bash
+# infra/terraform/demo provisions the project; then:
+cd examples/cloud-run-golden-path
+terraform init && terraform apply -var="project_id=gcp-architect-demo-2026"
+curl -s $(terraform output -raw service_url)
+
+terraform destroy -var="project_id=gcp-architect-demo-2026"   # same-day teardown
+```
+
+## Where this fits: Google Cloud Well-Architected Framework
+
+| Pillar | How this post applies it |
+|---|---|
+| Reliability | Availability + latency SLOs, multi-window burn-rate alerting |
+| Operational Excellence | Terraform as source of truth, keyless CI/CD, reproducible runbook |
+| Cost Optimization | Scale-to-zero, right-sized memory, FinOps labels |
+
+## References
+
+- [Google Cloud Run overview](https://cloud.google.com/run/docs/overview/what-is-cloud-run)
+- Qiita: *GCP Cloud RunのSLO monitoringをterraformで作成* (the post that inspired this blog)
+- This blog: *Workload Identity Federation from GitHub Actions to GCP (no keys)*
+- [Cloud Run traffic management](https://cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration)
+- [Well-Architected Framework — reliability](https://cloud.google.com/architecture/framework/reliability)

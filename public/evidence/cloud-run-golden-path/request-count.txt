@@ -1,0 +1,6 @@
+ERROR: (gcloud.monitoring) Invalid choice: 'time-series'.
+Maybe you meant:
+  gcloud monitoring dashboards
+  gcloud monitoring policies
+  gcloud monitoring snoozes
+  gcloud monitoring uptime
