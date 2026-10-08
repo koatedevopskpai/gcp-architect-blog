@@ -4,7 +4,7 @@ description: "One blessed way to ship Cloud Run: Terraform service, runtime SA, 
 category: "platform-engineering-idp"
 tags: ["cloud-run", "terraform", "slo", "sre", "artifact-registry", "ci-cd"]
 publishDate: 2026-10-08
-draft: true
+draft: false
 impact: 5
 demand: 5
 confidence: 5
@@ -39,6 +39,9 @@ SLOs with burn-rate alerting, and keyless CI. Applied live, then destroyed.
 - **Proof level:** **tier 1** — applied live. The service ran at
   `hello-5fqef65h6q-uc.a.run.app`, served HTTP 200, and took 30/30 seeded
   requests, then was torn down.
+- **Evidence:** run artifacts at
+  [`/evidence/cloud-run-golden-path/`](/evidence/cloud-run-golden-path/) —
+  health check, service describe, request count, cost note.
 
 ```
 repo ──▶ CI (keyless WIF) ──▶ Artifact Registry ──▶ Cloud Run (scale-to-zero)
