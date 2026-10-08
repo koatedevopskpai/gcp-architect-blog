@@ -19,11 +19,12 @@ seriesOrder: 1
 import Callout from "../../../components/Callout.astro";
 
 <Callout type="warn" title="The production problem this solves">
-Deploying a container to Cloud Run takes one command. **Operating** it in
-production takes more: a least-privilege identity, an image registry, SLOs that
-map to users, an alert when you burn the error budget, and CI that deploys
-without keys. Without those, you get a URL that works today and a pager that
-rings at 2am with no runbook.
+Deploying a container to Cloud Run takes a single command. **Operating** it
+reliably in production takes considerably more: a least-privilege runtime
+identity, an isolated Artifact Registry, SLOs mapped to user experience,
+multi-window alerts that fire before the error budget is exhausted, and CI that
+deploys without long-lived keys. Without these guardrails, you get an endpoint
+that works today and a 2 AM page with zero context or runbook.
 </Callout>
 
 **In one line:** one blessed path for shipping a Cloud Run service —
@@ -51,15 +52,15 @@ repo ──▶ CI (keyless WIF) ──▶ Artifact Registry ──▶ Cloud Run 
 
 ## Why this matters in production
 
-| Daily pain | Ad-hoc "just deploy it" | Golden path |
+| Daily pain | Ad-hoc "just ship it" | Golden path |
 |---|---|---|
-| Identity | Default compute SA (Editor) | Dedicated runtime SA, least privilege |
-| Image management | Wherever the last deploy came from | One Artifact Registry repo |
-| Availability | You find out when customers do | SLO + uptime visible |
-| Latency | Worse than your team knows | Latency SLO in the same dashboard |
-| Alerting | None / manual health checks | Multi-window burn-rate alert |
-| On-call | No runbook | Terraform is the source of truth |
-| Cost | Always-on instances mysteriously | Scale-to-zero, FinOps labels |
+| Identity | Default compute SA (broad Editor) | Dedicated runtime SA, least privilege |
+| Image management | Ad-hoc pulls from unmanaged sources | Centralized Artifact Registry repo |
+| Availability | You find out when customers complain | Measured SLO + explicit error budget |
+| Latency | Degrades unnoticed until incidents | p95/p99 latency beside availability |
+| Alerting | Raw thresholds / manual health checks | Multi-window burn-rate alerts, less noise |
+| On-call | Guesswork, missing runbooks | Terraform configuration is the runbook |
+| Cost | Zombie instances, surprise bills | Scale-to-zero + FinOps labels |
 
 Google itself frames the difference as **Reliability** and **Operational
 Excellence** pillars (see the Well-Architected mapping at the bottom).
@@ -297,14 +298,18 @@ Slack via `google_monitoring_notification_channel`, referenced from the policy's
 
 ## Operating it in production
 
-1. **Traffic for SLOs:** drive synthetic load (scheduler/uptime check) so SLIs
-   are real, not empty.
-2. **Dashboards:** wire `request_count`, `request_latencies`, and the SLO burn
+1. **Traffic for SLOs:** a dormant service computes SLIs against an empty
+   denominator. Drive a synthetic heartbeat (Cloud Scheduler or a Uptime Check
+   hitting `/health`) so availability/latency are real.
+2. **Warm vs cold latencies:** cold starts skew p95/p99. Capture warm
+   steady-state runs for tuning, and watch cold starts separately in platform
+   logs.
+3. **Dashboards:** wire `request_count`, `request_latencies`, and the SLO burn
    into one ops dashboard — see the platform's `monitoring.tf` pattern.
-3. **Canary:** `gcloud run services update-traffic hello --to-revisions
+4. **Canary:** `gcloud run services update-traffic hello --to-revisions
    hello-00001-xyz=90,hello-00002-abc=10` for gradual rollouts.
-4. **Secrets:** reference Secret Manager per revision — never bake env in the
-   image.
+5. **Secrets:** mount Secret Manager references per revision — never bake
+   credentials into the image.
 
 ## SLO / Security / FinOps notes
 
@@ -326,29 +331,29 @@ Slack via `google_monitoring_notification_channel`, referenced from the policy's
 Copy this into a service PR template or onboarding docs:
 
 **Identity & delivery**
-- Dedicated runtime SA (no default Editor, no shared identities)
-- Keyless CI via Workload Identity Federation (no SA keys)
-- Artifact Registry: one repo, labels, scanning, tag retention
+- [ ] Dedicated runtime SA (no default Editor, no shared identities)
+- [ ] Keyless CI via Workload Identity Federation (zero long-lived keys)
+- [ ] Artifact Registry: one repo, labels, scanning, tag retention
 
 **Service**
-- Scale-to-zero (min instances 0) with a max-instance cost cap
-- Startup CPU boost + startup probe
-- Timeout set; concurrency tuned by load test
+- [ ] Scale-to-zero (min 0) with a strict max-instance cap
+- [ ] Startup CPU boost + explicit startup probe
+- [ ] Request timeout set; concurrency tuned under load
 
 **Reliability**
-- Availability and latency SLOs bound to the service
-- Multi-window burn-rate alert on a real notification channel
-- Synthetic/uptime traffic so SLIs are never empty
+- [ ] Availability and latency SLOs bound to the service
+- [ ] Multi-window burn-rate alert on an active notification channel
+- [ ] Synthetic/uptime traffic so SLIs are never an empty denominator
 
 **Security**
-- Runtime SA limited to `artifactregistry.reader` (+ secrets as needed)
-- Secrets via Secret Manager per revision (never in the image)
-- Public ingress only for demos (IAP / PSC / Cloud Armor for prod)
+- [ ] Runtime SA limited to `artifactregistry.reader` (+ secret accessor as needed)
+- [ ] Secrets via Secret Manager per revision (never in the image)
+- [ ] Public ingress (`allUsers`) only for genuine public demos
 
 **FinOps**
-- Labels on every resource; service/project/billing-account budgets
-- Cost attributed per service; right-sizing reviewed after load tests
-- Throwaway resources torn down the same day
+- [ ] FinOps labels on every resource; service/project/billing-account budgets
+- [ ] Cost attributed per service; right-sizing reviewed after load tests
+- [ ] Throwaway resources torn down the same day
 
 ## Reproduce
 
