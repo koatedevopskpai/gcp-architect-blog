@@ -1,0 +1,1 @@
+ok=320 fail=0 samples=320 avg=174ms p95=202ms (2026-10-08T12:17Z)
