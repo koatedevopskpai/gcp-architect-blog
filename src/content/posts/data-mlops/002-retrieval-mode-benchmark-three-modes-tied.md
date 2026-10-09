@@ -15,6 +15,7 @@ requiresOrg: false
 series: "foundry-rag-pipeline"
 seriesOrder: 2
 codeRepo: "https://github.com/koatedevopskpai/enterprise-rag-pipeline"
+ogImage: "/og/002-retrieval-mode-benchmark.png"
 ---
 
 ## Overview
