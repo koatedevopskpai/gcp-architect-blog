@@ -16,6 +16,8 @@ and captured proof under `public/evidence/<slug>/`. No slideware.
 - **Astro 5** (static output, MDX, Shiki highlighting, client-side Mermaid).
 - **Single `posts` content collection** — no duplicated per-category trees.
 - **7 pillars (A–G)**; the letter is derived from `category`, never stored.
+- **3 cloud tracks (aws | gcp | azure | multi)**; a cloud is optional on a post and
+  defaults to `gcp`. `/clouds/` filters by track; `multi` is the cross-cloud bridge.
 - **Proof tiers**: `1` live run, `2` code proof, `3` reference.
 - **Org gating**: topics needing a GCP organization carry `requiresOrg: true` and
   are scheduled last.
@@ -40,6 +42,7 @@ Add posts at `src/content/posts/<category>/<NNN>-<slug>.mdx` with frontmatter:
 title: "…"
 description: "80-200 chars"
 category: "security-iam"   # one of the 7 pillars
+cloud: "gcp"               # optional track: aws | gcp | azure | multi (default gcp)
 tags: ["terraform", "iam"]
 publishDate: 2026-10-07
 draft: false

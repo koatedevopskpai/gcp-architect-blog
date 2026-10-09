@@ -14,6 +14,8 @@ const CATEGORY_LABEL = {
   "architecture-leadership": "G Leadership",
 };
 
+const CLOUD_LABEL = { aws: "AWS", gcp: "GCP", azure: "Azure", multi: "Multi" };
+
 const doc = yaml.load(readFileSync("content-ops/backlog.yaml", "utf8"));
 const topics = doc.topics ?? [];
 
@@ -36,13 +38,14 @@ const lines = [
   "",
   "Formula: `Priority = (Impact x Demand x Confidence) / Effort`. Org-required topics are pushed last.",
   "",
-  "| # | Title | Category | Tier | Org | Im | De | Co | Ef | Score | Band |",
-  "|---|---|---|---|:--:|--:|--:|--:|--:|--:|---|",
+  "| # | Title | Category | Cloud | Tier | Org | Im | De | Co | Ef | Score | Band |",
+  "|---|---|---|---|---|:--:|--:|--:|--:|--:|--:|---|",
   ...scored.map((t) =>
     [
       `| ${t.id}`,
       t.title,
       CATEGORY_LABEL[t.category] ?? t.category,
+      CLOUD_LABEL[t.cloud] ?? t.cloud ?? "GCP",
       `T${t.proofTier}`,
       t.requiresOrg ? "yes" : "",
       t.impact,

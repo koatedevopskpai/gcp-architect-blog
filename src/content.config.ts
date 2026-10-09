@@ -1,16 +1,19 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 import { CATEGORY_KEYS } from "./data/categories";
+import { CLOUD_KEYS } from "./data/clouds";
 
 // One `posts` collection. Files may be nested by category on disk
 // (src/content/posts/<category>/NNN-slug.mdx) but the `category` field is
 // the source of truth for routing, tags, and the derived A-G letter.
+// `cloud` (optional, defaults to gcp at render time) tags the track: aws|gcp|azure|multi.
 const posts = defineCollection({
   loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/posts" }),
   schema: z.object({
     title: z.string().max(120),
     description: z.string().min(80).max(200),
     category: z.enum(CATEGORY_KEYS),
+    cloud: z.enum(CLOUD_KEYS).optional(),
     tags: z.array(z.string()).default([]),
     publishDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),

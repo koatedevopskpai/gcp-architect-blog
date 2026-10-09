@@ -14,11 +14,14 @@ const CATEGORIES = [
   "architecture-leadership",
 ];
 
-const [category, id, ...titleParts] = process.argv.slice(2);
-const title = titleParts.join(" ");
+const CLOUDS = ["aws", "gcp", "azure", "multi"];
+
+const [category, id, ...rest] = process.argv.slice(2);
+const cloud = rest.includes("--cloud") ? rest[rest.indexOf("--cloud") + 1] : "gcp";
+const title = rest.filter((part, i) => part !== "--cloud" && rest[i - 1] !== "--cloud").join(" ");
 
 if (!category || !id || !title) {
-  console.error('Usage: npm run new:post -- <category> <id> "<title>"');
+  console.error('Usage: npm run new:post -- <category> <id> "<title>" [--cloud aws|gcp|azure|multi]');
   console.error(`Categories: ${CATEGORIES.join(", ")}`);
   process.exit(1);
 }
@@ -26,6 +29,12 @@ if (!category || !id || !title) {
 if (!CATEGORIES.includes(category)) {
   console.error(`Unknown category "${category}".`);
   console.error(`Categories: ${CATEGORIES.join(", ")}`);
+  process.exit(1);
+}
+
+if (!CLOUDS.includes(cloud)) {
+  console.error(`Unknown cloud "${cloud}".`);
+  console.error(`Clouds: ${CLOUDS.join(", ")}`);
   process.exit(1);
 }
 
@@ -45,6 +54,7 @@ const template = `---
 title: "${title}"
 description: "TODO: 80-200 char description."
 category: "${category}"
+cloud: "${cloud}"
 tags: []
 publishDate: ${today}
 draft: true
