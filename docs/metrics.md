@@ -62,6 +62,11 @@ user-ADC quota-project error (manage budgets via `gcloud`, as done for the blog)
 Cost note: VM accrues ~$12–14/mo (~$0.017/hr); budgets still read £0 (billing
 lags ~a day).
 
+> **⚠️ PENDING TEARDOWN:** `gcp-proof-platform` VM left UP for a 24h metrics
+> window (uptime samples + the 06:00 scheduled `eval-to-bq` run).
+> **Tear down 2026-10-10 morning:** `cd gcp-proof-platform; .\scripts\down.ps1`.
+> Leaving it up risks the £15/$20 budget; confirm the VM is gone after.
+
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
 Cloud Build 1/8 success, £0 spend.
