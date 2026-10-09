@@ -27,14 +27,24 @@ earlier) — keep it as the flagship signal.
 | cloud-run-ai-golden-path | 3 | 89% | 54 | 111 (5 files) | - |
 | gcp-proof-platform | run in Cloud Build (py/node/dotnet) | - | - | py 613 · ts 106 · cs 223 · tf 686 | eval-gate ≥0.80 in CI ✓ |
 
-## 3. Runtime metrics — **phase 2** (gcp-proof-platform only)
+## 3. Runtime metrics (gcp-proof-platform) — 2026-10-09 baseline
 
-To add next: from Cloud Monitoring + Cloud Billing —
-- **SLO/error budget** (99% availability, 30d) for the always-on gateway; uptime
-  check success ratio.
-- **Cloud Run job** (`eval-to-bq`) invocations + failures; BigQuery rows loaded.
-- **Cloud Build** minutes/history + mean duration.
-- **Cost**: actual monthly from billing export vs the £15/$20 budget; mean $/run.
+**Current state: the always-on stack is DOWN.** Findings from GCP:
+
+| Item | Observed | Implication |
+|---|---|---|
+| Compute VM | **0 instances** | Stack was torn down (`down.ps1`); VM absent → no SLO/uptime load |
+| Cloud Run job (`eval-to-bq`) | **0 jobs/executions** in us-central1 | Pipeline not deployed right now |
+| BigQuery `ai_platform.eval_reports` | **dataset not found** | Table/dataset missing (or never created) |
+| Cloud Build | 8 builds (1 **SUCCESS** 2026-09-30, 7 **FAILURE**) | Last successful build 2026-09-30; pipeline failing since |
+| Budgets (billing account) | all `currentSpend = 0` (incl. `t-*` £20, blog £2, demo £5) | **£0 actual spend this period** while the stack is down |
+| Uptime / availability SLO | no uptime check data | SLO is dormant with the VM down |
+
+**To make runtime metrics real:** run `scripts\up.ps1` on the platform, re-run
+`gcloud run jobs execute eval-to-bq`, then capture: SLO/error budget (99%/30d),
+uptime success ratio, BigQuery rows loaded, Cloud Build pass rate, and cost vs
+the £15/$20 budget. Until then, "£0 spend / no load" is the honest number —
+and Cloud Build's last FAILURE is the thing to fix first.
 
 ## 4. Outcome metrics (weekly, manual)
 
