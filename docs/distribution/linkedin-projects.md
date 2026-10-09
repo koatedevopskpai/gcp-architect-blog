@@ -54,7 +54,23 @@ Media: https://github.com/koatedevopskpai/lexisum
 Skills: LLM Evaluations · RAG · CI/CD · Python · AI Observability
 Media: https://github.com/koatedevopskpai/llm-evals-demo
 
-## 7. Multicloud landing zones & platforms (AWS · GCP · Azure)
+## 7. agentic-rag-hybrid
+> Planner-executor RAG: hybrid retrieval (BM25 sparse + deterministic dense),
+> reciprocal rank fusion, and groundedness filtering — deterministic and
+> eval-gated, no LLM in the retrieval path.
+
+Skills: RAG · Retrieval Engineering · Hybrid Search · Python · Evaluations
+Media: https://github.com/koatedevopskpai/agentic-rag-hybrid
+
+## 8. cloud-run-ai-golden-path
+> The blog's Cloud Run golden path packaged for AI: Pydantic-validated FastAPI
+> LLM endpoint, Terraform + availability/latency SLOs + 14.4× burn alert, and
+> keyless WIF CI.
+
+Skills: Google Cloud Run · FastAPI · SLOs · Workload Identity Federation · CI/CD
+Media: https://github.com/koatedevopskpai/cloud-run-ai-golden-path
+
+## 9. Multicloud landing zones & platforms (AWS · GCP · Azure)
 > Terraform landing zones, container platforms and premium-workload blueprints
 > across AWS, GCP and Azure — the multicloud delivery evidence.
 
