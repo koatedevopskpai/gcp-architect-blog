@@ -27,24 +27,34 @@ earlier) — keep it as the flagship signal.
 | cloud-run-ai-golden-path | 3 | 89% | 54 | 111 (5 files) | - |
 | gcp-proof-platform | run in Cloud Build (py/node/dotnet) | - | - | py 613 · ts 106 · cs 223 · tf 686 | eval-gate ≥0.80 in CI ✓ |
 
-## 3. Runtime metrics (gcp-proof-platform) — 2026-10-09 baseline
+## 3. Runtime metrics (gcp-proof-platform)
 
-**Current state: the always-on stack is DOWN.** Findings from GCP:
+### 2026-10-09 — stack restored, metric run
 
-| Item | Observed | Implication |
-|---|---|---|
-| Compute VM | **0 instances** | Stack was torn down (`down.ps1`); VM absent → no SLO/uptime load |
-| Cloud Run job (`eval-to-bq`) | **0 jobs/executions** in us-central1 | Pipeline not deployed right now |
-| BigQuery `ai_platform.eval_reports` | **dataset not found** | Table/dataset missing (or never created) |
-| Cloud Build | 8 builds (1 **SUCCESS** 2026-09-30, 7 **FAILURE**) | Last successful build 2026-09-30; pipeline failing since |
-| Budgets (billing account) | all `currentSpend = 0` (incl. `t-*` £20, blog £2, demo £5) | **£0 actual spend this period** while the stack is down |
-| Uptime / availability SLO | no uptime check data | SLO is dormant with the VM down |
+| Metric | Value |
+|---|---|
+| VM | `gcp-proof-platform-dev-app`, **e2-small**, `us-central1-a`, RUNNING |
+| External IP | 136.80.4.30 |
+| Gateway health | **60/60 success** — `http://136.80.4.30:3002/health` → 200 |
+| Health latency | avg **157 ms**, p95 **175 ms**, min 139 ms, max 390 ms |
+| Downstream services | `rag-api` ok, `dotnet-ingest` ok (from gateway `/health`) |
+| Uptime check | `gateway health` (STATIC_IP_CHECKERS, `/health:3002`) active |
+| Time to serve | ~255 s from VM start (repo clone + docker compose build) |
 
-**To make runtime metrics real:** run `scripts\up.ps1` on the platform, re-run
-`gcloud run jobs execute eval-to-bq`, then capture: SLO/error budget (99%/30d),
-uptime success ratio, BigQuery rows loaded, Cloud Build pass rate, and cost vs
-the £15/$20 budget. Until then, "£0 spend / no load" is the honest number —
-and Cloud Build's last FAILURE is the thing to fix first.
+**Still blocked (pre-existing, not runtime):**
+- **Cloud Build failing** → the `eval-to-bq` image was never pushed, so the Cloud
+  Run job can't be created (`Image .../eval-to-bq:latest not found`).
+- **BigQuery `ai_platform.eval_reports` dataset missing.**
+- **WIF pool drift** (`google_iam_workload_identity_pool.github` → 409 exists, not
+  in state) and the **budget** resource hits the user-ADC quota-project error.
+
+Cost: the VM now accrues (~$12–14/mo); budgets still show `currentSpend = 0`
+(billing lags a day). Fix Cloud Build next to unblock the eval pipeline and the
+SLO/error-budget numbers.
+
+### Prior baseline (2026-10-09, before restore)
+Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
+Cloud Build 1/8 success, £0 spend.
 
 ## 4. Outcome metrics (weekly, manual)
 
