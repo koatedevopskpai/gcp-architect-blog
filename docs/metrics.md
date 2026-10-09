@@ -41,16 +41,26 @@ earlier) — keep it as the flagship signal.
 | Uptime check | `gateway health` (STATIC_IP_CHECKERS, `/health:3002`) active |
 | Time to serve | ~255 s from VM start (repo clone + docker compose build) |
 
-**Still blocked (pre-existing, not runtime):**
-- **Cloud Build failing** → the `eval-to-bq` image was never pushed, so the Cloud
-  Run job can't be created (`Image .../eval-to-bq:latest not found`).
-- **BigQuery `ai_platform.eval_reports` dataset missing.**
-- **WIF pool drift** (`google_iam_workload_identity_pool.github` → 409 exists, not
-  in state) and the **budget** resource hits the user-ADC quota-project error.
+### 2026-10-09 — CI fixed + eval pipeline run
 
-Cost: the VM now accrues (~$12–14/mo); budgets still show `currentSpend = 0`
-(billing lags a day). Fix Cloud Build next to unblock the eval pipeline and the
-SLO/error-budget numbers.
+| Build metric | Value |
+|---|---|
+| Cloud Build (latest) | **SUCCESS**, **6m40s**, tag `manual-1009` |
+| Pipeline | now builds + Trivy-scans **5 images** (added `eval-to-bq`) |
+| Cloud Run job `eval-to-bq` | execution `eval-to-bq-v2cjz` → **SUCCESS** (1 ok / 0 fail) |
+| BigQuery `ai_platform.eval_reports` | **4 rows loaded**, last `2026-10-09` |
+
+Fixes applied (platform repo `20e6a83`): cloudbuild builds `eval-to-bq`
+(repo-root context) and pushes both `:<tag>` and `:latest`; the `mlops/bigquery`
+Dockerfile upgrades base packages; `.trivyignore` records accepted base-image
+perl CVEs (documented).
+
+**Remaining (minor):** WIF pool drift (`google_iam_workload_identity_pool.github`
+exists in GCP, not in state → 409) and the Terraform *budget* resource hits the
+user-ADC quota-project error (manage budgets via `gcloud`, as done for the blog).
+
+Cost note: VM accrues ~$12–14/mo (~$0.017/hr); budgets still read £0 (billing
+lags ~a day).
 
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
