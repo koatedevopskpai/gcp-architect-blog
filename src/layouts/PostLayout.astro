@@ -35,6 +35,7 @@ const mins = readingTime(post.body);
 <BaseLayout
   title={title}
   description={description}
+  ogImage={post.data.ogImage}
   publishedTime={publishDate.toISOString()}
 >
   <article class="post">
