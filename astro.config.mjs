@@ -15,5 +15,7 @@ export default defineConfig({
   },
   redirects: {
     "/tracks": "/categories",
+    "/posts/data-mlops/002-retrieval-mode-benchmark-three-modes-tied": "/posts/data-mlops/002-retrieval-mode-benchmark-four-modes",
+    "/posts/data-mlops/002-retrieval-mode-benchmark-three-modes-tied/": "/posts/data-mlops/002-retrieval-mode-benchmark-four-modes",
   },
 });

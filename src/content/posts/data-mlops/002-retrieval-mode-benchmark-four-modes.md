@@ -96,7 +96,7 @@ xychart-beta
 | hybrid | 0.95 | 0.95 | 0.95 | 0.95 |
 | hybrid_rerank | 0.90 | 0.90 | 0.90 | 0.90 |
 
-### 3. Paraphrase style ("Which policy sets a maximum of N units?")
+### 3. Numeric paraphrase (explicit limit)
 
 | Mode | H@5 | H@1 | MRR | nDCG@5 |
 |---|---|---|---|---|
@@ -104,6 +104,12 @@ xychart-beta
 | vector | 0.90 | 0.55 | 0.70 | 0.75 |
 | hybrid | 0.95 | 0.90 | 0.93 | 0.93 |
 | hybrid_rerank | 0.90 | 0.90 | 0.90 | 0.90 |
+
+> Note: the query names the exact limit value, so BM25 also solves this set
+> (1.00) — it is still a keyword hit. The interesting signal is **hybrid vs
+> vector** (MRR 0.93 vs 0.70): the keyword leg rescues dense retrieval on precise
+> values. A true semantic paraphrase with no shared tokens is a follow-up test,
+> not part of this set.
 
 ### 4. Ambiguous topic (deliberately underspecified)
 
@@ -138,16 +144,34 @@ xychart-beta
    the review's suspicion: earlier "ties" were because those sets were lookup
    tests. If your retrieval is identifier lookups, you may not need embeddings at
    all — and it's the cheapest mode by far (no query embeddings, ~0.6 s).
-2. **Hybrid beats vector where it should.** On paraphrase queries, MRR is 0.93
-   (hybrid) vs 0.70 (vector) — the keyword leg catches the number that dense
-   vectors miss — for ~80 ms extra. On Azure AI Search that leg is native and
-   nearly free.
+2. **Hybrid beats vector where the query has precise tokens.** On the
+   numeric-paraphrase set, MRR is 0.93 (hybrid) vs 0.70 (vector): the keyword leg
+   catches the exact value dense vectors miss, for ~80 ms extra. BM25 also solves
+   these, so it is a keyword rescue of dense retrieval, not semantic recall.
 3. **The reranker added a second and gained nothing here.** p50 went from ~1.4 s
    to ~2.4 s and recall did not improve on any set. It will help when a crowded,
    borderline candidate list needs re-ranking — that is not what these sets are.
-4. **Ambiguous queries defeat everyone.** All four modes sit at ~0.35–0.40 H@5
-   and 0.00 H@1. That is a query-quality problem, not a retrieval problem — the
-   signal is not there to find.
+4. **Ambiguous queries defeat everyone, and that's a query problem.** All four
+   modes sit at ~0.35–0.40 H@5 and 0.00 H@1. No retrieval mode can find a signal
+   that isn't there. The product-level fix is a **clarifying question** — when
+   top candidates all score about equally, ask the user instead of guessing.
+
+## What I'd run next
+
+This is a sanity check, not the end of the story. Three follow-ups would complete it:
+
+- **A genuinely semantic paraphrase set** (low or zero lexical overlap with the
+  target). Does hybrid still beat vector when there is no precise token to match,
+  and does BM25 fall off the way dense results should?
+- **A crowded-candidate set** — 10+ documents scoring near-equally for one
+  correct answer — to actually test whether the reranker improves H@1 / nDCG and
+  whether its ~1 s is worth it. That is the reranker's purpose-built scenario,
+  and it is untested here.
+- **More queries + confidence intervals** for stable H@1 / MRR / nDCG (and stable
+  p95 latency).
+
+The generator (`scripts/generate_eval_corpus.py`) and `compare_modes.py` already
+accept the knobs (`--docs`, `--queries`, `QUERY_TYPE` filters) to build these.
 
 ## Threats to validity
 
@@ -156,9 +180,10 @@ xychart-beta
   diverse production data.
 - **Small sample.** 80 queries per type; no confidence intervals. Treat as a
   sanity check, not a posterior over retrieval modes.
-- **Paraphrase here is still number lookup.** The "paraphrase" queries name the
-  exact limit, so BM25 also solves them. Genuinely semantic, low-overlap queries
-  are a separate, harder benchmark.
+- **The "paraphrase" set is numeric lookup.** Queries name the exact limit, so
+  BM25 also solves them (that's why it hits 1.00); genuinely semantic
+  low-overlap queries are a separate, harder benchmark — listed in "What I'd run
+  next."
 - **Latency is local, serial, coldish.** These are per-call timings from one dev
   box; treat as relative, not absolute.
 

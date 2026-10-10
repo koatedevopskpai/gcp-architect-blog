@@ -304,5 +304,5 @@ between "I wrote a RAG demo" and "I can operate this in Azure."
 ## Links
 
 - Code: [enterprise-rag-pipeline](https://github.com/koatedevopskpai/enterprise-rag-pipeline)
-- Next post in the series: [We built three retrieval modes and they tied](/posts/data-mlops/002-retrieval-mode-benchmark-three-modes-tied/)
+- Next post in the series: [We benchmarked four retrieval modes](/posts/data-mlops/002-retrieval-mode-benchmark-four-modes/)
 - [Azure OpenAI model retirements](https://learn.microsoft.com/azure/ai-services/openai/concepts/model-retirements)
