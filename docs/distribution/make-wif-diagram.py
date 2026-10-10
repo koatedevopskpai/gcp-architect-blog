@@ -29,7 +29,7 @@ ax.axis("off")
 # Title
 ax.text(W / 2, H - 60, "Keyless GitHub Actions \u2192 GCP via Workload Identity Federation",
         ha="center", va="center", fontsize=30, weight="bold", color=INK)
-ax.text(W / 2, H - 100, "short-lived OIDC tokens in, impersonated service account out \u2014 no keys anywhere",
+ax.text(W / 2, H - 112, "short-lived OIDC tokens in, impersonated service account out \u2014 no keys anywhere",
         ha="center", va="center", fontsize=17, color=MUTED)
 
 # Actor columns
@@ -55,7 +55,7 @@ def arrow(x1, y1, x2, y2, color=ACCENT, style="-", width=2.2):
 
 def label(x, y, text, color=INK, size=16, weight="normal", bg="#E8F1FD"):
     ax.text(x, y, text, ha="center", va="center", fontsize=size, weight=weight,
-            color=color, bbox=dict(boxstyle="round,pad=5", facecolor=bg,
+            color=color, bbox=dict(boxstyle="round,pad=0.35", facecolor=bg,
                                    edgecolor="none"))
 
 
@@ -68,19 +68,19 @@ label(GH + 65, y + 34, "1  Mint OIDC token")
 label(GH + 65, y - 34, "iss: token.actions.githubusercontent.com", size=12.5, color=MUTED, bg="#EFF2F5")
 
 # 2. exchange
-y = H - 430
+y = H - 415
 arrow(GH, y, STS, y)
 label((GH + STS) / 2, y + 32, "2  Exchange OIDC for federated token")
 
 # 3. validate (self on STS)
-arrow(STS, y - 96, STS + 150, y - 96)
-ax.annotate("", xy=(STS + 6, y - 98), xytext=(STS + 150, y - 98),
+arrow(STS, y - 90, STS + 150, y - 90)
+ax.annotate("", xy=(STS + 6, y - 92), xytext=(STS + 150, y - 92),
             arrowprops=dict(arrowstyle="-|>", color=ACCENT, linewidth=2.2))
-label(STS + 75, y - 62, "3  Validate issuer, audience, condition")
-label(STS + 75, y - 128, "attribute.repository == OWNER/REPO", size=12.5, color=MUTED, bg="#EFF2F5")
+label(STS + 75, y - 56, "3  Validate issuer, audience, condition")
+label(STS + 75, y - 124, "attribute.repository == OWNER/REPO", size=12.5, color=MUTED, bg="#EFF2F5")
 
 # 4. short-lived token back
-y = H - 590
+y = H - 630
 arrow(STS, y, GH, y, color=GREEN)
 label((GH + STS) / 2, y + 32, "4  Short-lived access token (~1h)", color=GREEN, bg="#EAF7EE")
 
@@ -95,6 +95,34 @@ ax.text(W / 2, 92, "No service-account keys \u2022 attribute-scoped trust \u2022
 ax.text(W / 2, 56, "gcp-architect-blog.web.app",
         ha="center", va="center", fontsize=14, color=MUTED)
 
-out = Path(__file__).resolve().parent / "wif-oidc-diagram.png"
-fig.savefig(out, facecolor=BG, bbox_inches="tight", pad_inches=0.25)
-print(f"wrote {out} ({out.stat().st_size // 1024} KB)")
+def overlap_report():
+    fig.canvas.draw()
+    rend = fig.canvas.get_renderer()
+    items = []
+    for t in ax.texts:
+        if not t.get_text().strip():
+            continue
+        ext = t.get_window_extent(rend)
+        bp = t.get_bbox_patch()
+        if bp is not None:
+            ext = bp.get_window_extent(rend)
+        items.append((t.get_text()[:30], ext))
+    pairs = [(items[i][0], items[j][0])
+             for i in range(len(items)) for j in range(i + 1, len(items))
+             if items[i][1].overlaps(items[j][1])]
+    print(f"visible items: {len(items)} | overlapping pairs: {len(pairs)}")
+    for a, b in pairs:
+        print(f"  OVERLAP: {a!r} x {b!r}")
+    return not pairs
+
+
+base = Path(__file__).resolve().parent / "wif-oidc-diagram"
+fig.savefig(base.with_suffix(".png"), facecolor=BG, dpi=150,
+            bbox_inches="tight", pad_inches=0.25)
+fig.savefig(base.with_suffix(".svg"), facecolor=BG,
+            bbox_inches="tight", pad_inches=0.25)
+for ext in (".png", ".svg"):
+    p = base.with_suffix(ext)
+    print(f"wrote {p.name} ({p.stat().st_size // 1024} KB)")
+ok = overlap_report()
+print("OVERLAPS FOUND" if not ok else "clean: no overlaps")
