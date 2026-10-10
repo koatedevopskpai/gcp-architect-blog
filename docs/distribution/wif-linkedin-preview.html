@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LinkedIn posting preview — WIF (no-link variant)</title>
+<style>
+  :root {
+    --bg: #f4f2ee;
+    --card: #ffffff;
+    --fg: #1d2226;
+    --muted: #666666;
+    --border: #e0dfdc;
+    --link: #0a66c2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
+  .page-note {
+    background: #fff8e1; border: 1px solid #f0d68a; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; color: #5c4b12; margin-bottom: 20px;
+  }
+  .h1 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 10px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin-bottom: 20px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.02), 0 1px 3px rgba(0,0,0,.06);
+  }
+  .head { display: flex; gap: 10px; align-items: flex-start; }
+  .avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #0a66c2; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; flex-shrink: 0;
+  }
+  .who { flex: 1; min-width: 0; }
+  .name { font-weight: 600; }
+  .headline { color: var(--muted); font-size: 13px; }
+  .when { color: var(--muted); font-size: 12px; }
+  .dots { color: var(--muted); font-size: 20px; line-height: 1; }
+  .post { margin: 12px 0 4px; white-space: pre-wrap; }
+  .postimg { margin-top: 12px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .postimg img { display: block; width: 100%; height: auto; }
+  .hashtags { margin-top: 10px; color: var(--link); font-weight: 600; }
+  .react {
+    border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px;
+    display: flex; gap: 24px; color: var(--muted); font-size: 13px; font-weight: 600;
+  }
+  .comment { display: flex; gap: 10px; margin-top: 14px; }
+  .comment .avatar { width: 36px; height: 36px; font-size: 14px; }
+  .bubble { background: #f2f2f2; border-radius: 0 12px 12px 12px; padding: 8px 12px; font-size: 14px; }
+  .bubble .who-name { font-weight: 600; font-size: 13px; }
+  .bubble a { color: var(--link); }
+  .pinned { font-size: 12px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-note">
+    Draft preview of the exact posting package — open this file directly, no server needed.
+    Post text: <code>linkedin-wif-a-nolink.txt</code> · first comment: <code>linkedin-wif-a-comment.txt</code> ·
+    image: <code>wif-oidc-diagram.png</code> (upload it with the post).
+  </div>
+
+  <div class="h1">Step 1+2 — the post (with diagram attached)</div>
+
+  <div class="card">
+    <div class="head">
+      <div class="avatar">KK</div>
+      <div class="who">
+        <div class="name">Koate Kpai</div>
+        <div class="headline">Cloud Platform / DevOps Engineer — GCP • Terraform • SRE</div>
+        <div class="when">now · <span aria-hidden="true">🌐</span></div>
+      </div>
+      <div class="dots">···</div>
+    </div>
+    <div class="post">Your GitHub Actions workflow is authenticating to GCP with a service account key.
+
+That key:
+→ never expires by default
+→ can't be traced to a person
+→ works from anywhere on the internet
+→ is sitting in a GitHub Secret right now
+
+If it leaks, every resource that account can reach is exposed.
+
+Workload Identity Federation removes the static-key risk.
+
+I wired it end to end with Terraform:
+
+• Workload identity pool + GitHub OIDC provider
+• Attribute condition that locks trust to one repo — and ideally branch/environment
+• Least-privilege service account — and a separate runtime SA
+• Keyless workflow (no secret anywhere, ever)
+• Failure-mode table for common real errors
+• Revocation playbook, including token-expiry behaviour
+• "What changes at scale" — pools per environment, environment-pinned conditions
+
+Proof tier 2: the Terraform applies for real, the workflow authenticates for real.
+
+Full write-up with code + evidence is linked in the comments 👇</div>
+    <div class="postimg"><img src="wif-oidc-diagram.png" alt="Keyless GitHub Actions to GCP via Workload Identity Federation — OIDC exchange diagram" /></div>
+    <div class="hashtags">#GCP #Security #IAM #DevSecOps #Terraform</div>
+    <div class="post" style="margin-top:10px">Curious — how many teams are still running SA keys in CI? Honest answers, no judgement; we've all inherited them.</div>
+    <div class="react"><span>👍 Like</span><span>💬 Comment</span><span>↗ Repost</span><span>➤ Send</span></div>
+  </div>
+
+  <div class="h1">Step 3+4 — the first comment (post immediately, then pin)</div>
+
+  <div class="card">
+    <div class="comment">
+      <div class="avatar">KK</div>
+      <div>
+        <div class="bubble">
+          <div class="who-name">Koate Kpai (Author)</div>
+          Here's the full write-up (Terraform, failure-mode table, revocation playbook, Well-Architected mapping):<br />
+          <a href="https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/">https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/</a><br /><br />
+          (Pin this comment if LinkedIn lets you — it keeps the link visible.)
+        </div>
+        <div class="pinned">📌 Pinned by author</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
