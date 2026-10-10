@@ -1,0 +1,239 @@
+---
+title: "Production RAG on GCP under budget: Cloud Run + pgvector + Vertex AI"
+description: "A FastAPI RAG service on Cloud Run with pgvector on Cloud SQL and Vertex AI embeddings, wired with SLOs and a burn alert — applied live, measured, then destroyed."
+category: "data-mlops"
+tags: ["rag", "vertex-ai", "pgvector", "cloud-run", "cloud-sql", "terraform"]
+publishDate: 2026-10-10
+draft: true
+impact: 5
+demand: 5
+confidence: 4
+effort: 4
+proofTier: 1
+requiresOrg: false
+codeRepo: "https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/production-rag-gcp"
+series: "ai-on-gcp"
+seriesOrder: 1
+---
+
+import Callout from "../../../components/Callout.astro";
+
+<Callout type="warn" title="The production problem this solves">
+Most RAG demos never leave the laptop: an in-memory index, an API key in
+`.env`, no SLOs, no cost story. Production RAG needs a real vector store with
+an index, real embeddings behind IAM (not keys), an API with validation, and
+observability — all for a budget a side project can afford.
+</Callout>
+
+**In one line:** FastAPI on Cloud Run + pgvector on Cloud SQL + Vertex AI
+embeddings, with an availability SLO and burn alert — applied live, measured
+against a deterministic baseline, then destroyed for under five cents.
+
+- **Who this is for:** engineers shipping RAG who want the managed-GCP shape,
+  not another notebook.
+- **What you get:** a working `examples/production-rag-gcp` (app + Terraform),
+  a live run with real numbers, and a teardown that keeps the bill near zero.
+- **Proof level:** **tier 1** — applied live. The service ran at
+  `rag-api-5fqef65h6q-uc.a.run.app`, served 20/20 queries, then was destroyed.
+
+```text
+client ─▶ Cloud Run (FastAPI)  /ingest  /query
+              │  Cloud SQL connector (unix socket, IAM)
+              ▼
+        Cloud SQL Postgres 15  ── pgvector (HNSW, cosine)
+              ▲
+        embeddings: deterministic (tests) │ Vertex AI text-embedding-004 (live)
+```
+
+## Why this matters in production
+
+| Daily pain | Laptop RAG | Production RAG on GCP |
+|---|---|---|
+| Vector store | In-memory dict, lost on restart | pgvector with an HNSW index |
+| Embeddings | Whatever key is in `.env` | Vertex AI via IAM, no keys |
+| API | Ad-hoc script | Pydantic-validated FastAPI |
+| Reliability | Unknown | Availability SLO + burn alert |
+| Cost | Unknown until the invoice | Cheapest tier, destroyed same session |
+| Evidence | "Trust me" | Live latency + comparison numbers |
+
+## Prerequisites
+
+- A GCP project with billing (demo project `gcp-architect-demo-2026` here).
+- `gcloud` authenticated, Terraform >= 1.5, `google` provider `~> 6.0`.
+- The Vertex AI API (`aiplatform.googleapis.com`) enabled.
+
+## Steps
+
+### 1. pgvector schema, not a dict
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE documents (
+  id text PRIMARY KEY,
+  text text NOT NULL,
+  embedding vector(256)
+);
+CREATE INDEX documents_embedding_idx
+  ON documents USING hnsw (embedding vector_cosine_ops);
+```
+
+The app creates this on boot (`init_schema`), so schema and code never drift
+in a demo. In production, split Day-0 migration from Day-2 serving: run the
+DDL once from an ephemeral Cloud Run Job (or the Terraform Postgres provider)
+*before* the service deploys. That avoids concurrent-start races on
+`CREATE TABLE IF NOT EXISTS` and keeps `CREATE EXTENSION` privileges off the
+runtime service account.
+
+### 2. Embeddings that swap without rewiring
+
+```python
+embedder = build_embedder()   # deterministic locally, Vertex in prod
+```
+
+`EMBEDDING_PROVIDER=vertex` selects `VertexEmbedder` (`text-embedding-004`,
+`output_dimensionality=256` so the `vector(256)` schema stands). Everything else
+— chunking, store, API — is untouched. Tests run against the deterministic
+embedder, so CI needs no credentials.
+
+### 3. The cheapest database that counts
+
+```hcl
+resource "google_sql_database_instance" "pg" {
+  name             = "rag-pg"
+  database_version = "POSTGRES_15"   # keeps shared-core db-f1-micro available
+  region           = "us-central1"
+
+  deletion_protection = false
+
+  settings {
+    tier            = "db-f1-micro"  # $0.0105/hr
+    disk_size       = 10
+    disk_type       = "PD_SSD"
+    availability_type = "ZONAL"
+    backup_configuration { enabled = false }  # demo only
+  }
+}
+```
+
+Two rules that matter more than the instance type: pin **Postgres 15** — 16+
+drops the shared-core tiers, forcing dedicated vCPU (`db-custom-*`) at a much
+higher price floor — and **delete, don't stop** — a stopped instance still
+bills storage.
+
+### 4. Cloud Run with the connector, secrets from Secret Manager
+
+```hcl
+volumes {
+  name = "cloudsql"
+  cloud_sql_instance {
+    instances = [google_sql_database_instance.pg.connection_name]
+  }
+}
+# containers: volume_mounts { mount_path = "/cloudsql" }
+# DB_PASSWORD via value_source { secret_key_ref { ... } } — never env-plaintext
+```
+
+The runtime SA gets exactly three roles: `cloudsql.client`,
+`secretmanager.secretAccessor`, `aiplatform.user`. No Editor, no keys.
+
+### 5. Availability SLO + burn alert
+
+Same pattern as the Cloud Run golden path: a `google_monitoring_service`
+bound to the Cloud Run service, a 99%/30d availability SLO, and a 14.4×
+burn-rate alert on an email channel.
+
+### 6. Seed it, measure it, compare it
+
+```bash
+curl -X POST $URL/ingest -d '{"documents":[...3 docs...]}'
+curl -X POST $URL/query  -d '{"question":"How does Cloud Run handle idle traffic?","top_k":2}'
+```
+
+Same 3 docs, same question, two embedders:
+
+| Embedder | Top score | Second | Verdict |
+|---|---|---|---|
+| Deterministic hashing | 0.239 | 0.143 | weak separation |
+| Vertex `text-embedding-004` (256-dim) | **0.861** | 0.342 | real semantic ranking |
+
+Load run: **20/20 queries, avg 370ms, p95 651ms**. Ingest of 3 docs: ~2s.
+Evidence lives at [`/evidence/production-rag-gcp/`](/evidence/production-rag-gcp/).
+
+## Live-run gotchas (each cost me time; now documented)
+
+- **Bare `genai.Client()` targets the Gemini Developer API** and fails with
+  "No API key was provided." Vertex mode needs explicit flags:
+  `genai.Client(vertexai=True, project=..., location=...)` plus
+  `GOOGLE_CLOUD_PROJECT` / `VERTEX_LOCATION` env vars.
+- **`output_dimensionality` must match the schema.** `text-embedding-004`
+  emits 768 dims; the table is `vector(256)`. Pass
+  `config={"output_dimensionality": 256}` or the insert fails.
+- **Dockerfile order matters:** `pip install .` needs `COPY app` first —
+  otherwise the build fails on a missing package.
+- **Cloud Build's SA needs storage rights** on a fresh project before the first
+  `gcloud builds submit` — grant `roles/cloudbuild.builds.builder` once.
+- **Teardown ordering:** keep `deletion_protection = false` in the manifest and
+  declare the dependency chain explicitly (`depends_on`), so plain
+  `terraform destroy` tears down cleanly. Delete the SQL instance first if you
+  want — it's the cost driver and the slow pole
+  (`terraform destroy -target=google_sql_database_instance.pg`, then the rest)
+  — but never `state rm` live resources to work around it; that trades a slow
+  delete for untracked drift.
+
+## Operating it in production
+
+- **Latency:** p95 651ms on a cold-ish service; warm traffic and min-instances
+  bring this down. The SLO dashboard shows it live.
+- **Cost:** `db-f1-micro` at $0.0105/hr + 10 GB SSD ≈ **under $0.05** for the
+  whole session (deploy → measure → destroy). Vertex embeddings for a demo are
+  a fraction of a cent at $0.025/1M tokens.
+- **Teardown is the feature:** `terraform destroy` after capture. The demo
+  project's £5 budget is the guardrail, not the plan.
+- **Connections:** `db-f1-micro` has a tight connection ceiling, so the app
+  holds one persistent connection per worker (max-instances 3 ⇒ a handful of
+  sockets). If you raise max instances, set an explicit pool (e.g.
+  `pool_size=5`, `max_overflow=0`) rather than letting every request open
+  its own connection.
+
+## SLO / Security / FinOps notes
+
+- **Security:** IAM-only auth everywhere — Cloud SQL connector, Secret Manager
+  for the DB password, Vertex via workload identity. Zero keys.
+- **Cost:** cheapest tier, 10 GB disk, backups off, deleted not stopped.
+- **Reliability:** availability SLO + 14.4× burn alert on the API.
+
+## What this doesn't cover
+
+Hybrid retrieval (BM25 + dense with RRF) lives in the companion
+`agentic-rag-hybrid` repo — this post proves the *serving* layer; retrieval
+quality engineering is its own post. Evals-as-gates live in `llm-evals-demo`.
+
+## Reproduce
+
+```bash
+cd examples/production-rag-gcp
+terraform -chdir=infra init
+terraform -chdir=infra apply            # creates Cloud SQL + Cloud Run (~10 min)
+curl -s $SERVICE_URL/health
+# ... seed, query, capture ...
+terraform -chdir=infra destroy          # same session: back to ~$0
+```
+
+Full code: [`examples/production-rag-gcp`](https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/production-rag-gcp).
+
+## Where this fits: Google Cloud Well-Architected Framework
+
+| Pillar | How this post applies it |
+|---|---|
+| Reliability | Availability SLO + burn alert on the API |
+| Security | IAM-only (connector, Secret Manager, Vertex via identity); no keys |
+| Cost Optimization | Cheapest tier, 10 GB disk, backups off, destroyed same session |
+| Operational Excellence | Terraform as source of truth; reproducible run + teardown |
+
+## References and further reading
+
+- [Cloud SQL for PostgreSQL + pgvector](https://cloud.google.com/sql/docs/postgres/pgvector)
+- [Vertex AI text embeddings pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) ($0.025/1M tokens)
+- [Cloud Run + Cloud SQL connector](https://cloud.google.com/run/docs/configuring/connecting-cloud-sql)
+- [Cloud SQL pricing](https://cloud.google.com/sql/pricing) (`db-f1-micro` $0.0105/hr)
+- This blog: *Cloud Run golden path* (the serving pattern) and *Workload Identity Federation* (the keyless pattern)

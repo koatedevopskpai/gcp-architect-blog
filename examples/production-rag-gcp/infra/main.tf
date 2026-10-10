@@ -76,7 +76,9 @@ resource "random_password" "db" {
 }
 
 resource "google_sql_database_instance" "pg" {
-  name             = "rag-pg"
+  name = "rag-pg"
+  # PG15 keeps shared-core db-f1-micro available; 16+ drops shared-core tiers,
+  # forcing dedicated vCPU (db-custom-*) at a much higher floor.
   database_version = "POSTGRES_15"
   region           = var.region
 
@@ -238,7 +240,9 @@ resource "google_cloud_run_v2_service" "rag" {
     }
   }
 
-  depends_on = [google_project_service.svc]
+  # Explicit ordering so `terraform destroy` tears the service down before the
+  # database it mounts — no state surgery needed.
+  depends_on = [google_project_service.svc, google_sql_database_instance.pg]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "invoker" {
