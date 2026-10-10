@@ -69,7 +69,22 @@ lags ~a day).
 > **24h window result:** gateway stayed **HTTP 200** throughout; **1** `eval-to-bq`
 > execution (`eval-to-bq-v2cjz`, success); BigQuery `eval_reports` = **4 rows**
 > (last 2026-10-09); spend **£0**. Lesson: the **scheduler** resource wasn't
-> applied, so there was no automated overnight run — apply it for daily runs.
+> applied, so there was no automated overnight run — **fixed 2026-10-10** (below).
+
+### 2026-10-10 — scheduler fixed + verified (VM-free)
+
+Brought up only the eval pipeline (no VM) and fixed the scheduler:
+
+- **`scheduler.tf`**: added `roles/iam.serviceAccountTokenCreator` for the Cloud
+  Scheduler service agent on `eval_sa` (else the trigger is `PERMISSION_DENIED`),
+  plus `depends_on` the job and `attempt_deadline = 600s`.
+- **`cloudrun.tf`**: `eval_sa` needed `roles/artifactregistry.reader` — without it
+  the job container couldn't pull the image and the execution hung
+  (“waiting to start”).
+
+Verified: `gcloud scheduler jobs run eval-daily` → `eval-to-bq` **success** →
+**4 rows** in `ai_platform.eval_reports` (last `2026-10-10`). Scheduler `eval-daily`
+is **ENABLED** (`0 6 * * *`). VM remains down; pipeline + scheduler are ~free.
 
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
