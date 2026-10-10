@@ -46,7 +46,20 @@ volume) and an availability SLO + burn alert.
 
 `db-f1-micro` ≈ **$0.0105/hour**; 10 GB SSD ≈ $0.17/GB/month. A deploy → test →
 **destroy** cycle costs **pennies** (<$0.05). **Delete** (don't stop) the instance
-afterwards to return to $0 — a stopped instance still bills storage.
+afterwards to return to $0 — a stopped instance still bills storage. Pin
+**Postgres 15**: 16+ drops the shared-core tiers, forcing dedicated vCPU
+(`db-custom-*`) at a much higher floor.
+
+## Production notes
+
+- **Schema migration:** the app runs `init_schema` on boot, which is fine for a
+  demo. In production, run DDL once from an ephemeral Cloud Run Job (or the
+  Terraform Postgres provider) *before* the service deploys — concurrent
+  cold starts can race `CREATE TABLE IF NOT EXISTS`, and `CREATE EXTENSION`
+  shouldn't live on the runtime identity.
+- **Connections:** one persistent connection per worker; with
+  `max_instance_count = 3` that's a handful of sockets. Raise max instances
+  only with an explicit pool (`pool_size=5`, `max_overflow=0`).
 
 ## Switching to Vertex AI embeddings
 
