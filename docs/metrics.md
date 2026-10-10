@@ -86,6 +86,23 @@ Verified: `gcloud scheduler jobs run eval-daily` → `eval-to-bq` **success** �
 **4 rows** in `ai_platform.eval_reports` (last `2026-10-10`). Scheduler `eval-daily`
 is **ENABLED** (`0 6 * * *`). VM remains down; pipeline + scheduler are ~free.
 
+Runs so far: `xtgzj`, `vlfr7`, `fr6bk` → **12 rows** total (4/run).
+
+### Metric resource requirements (what needs what)
+
+| Metric | Needs | Cost |
+|---|---|---|
+| Cloud Build duration/status | Cloud Build only | ~free |
+| Eval job executions / success | Cloud Run job + scheduler | ~free |
+| BigQuery rows loaded | BigQuery dataset/table | ~free |
+| Budget / spend | Billing account + budgets | free |
+| **Gateway uptime check** | **always-on VM** (uptime check targets its IP) | $12–14/mo |
+| **Availability/latency SLO + error budget, ops dashboard** | **full stack** (`up.ps1` recreates `monitoring.tf`) | $12–14/mo |
+
+So the eval-pipeline + build metrics are **fully captured with the VM down**.
+The SLO/uptime/error-budget metrics require the always-on VM (and re-applying the
+monitoring stack), which was the intentionally cheap trade-off.
+
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
 Cloud Build 1/8 success, £0 spend.
