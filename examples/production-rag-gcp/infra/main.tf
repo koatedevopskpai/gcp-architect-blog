@@ -287,10 +287,19 @@ resource "google_monitoring_alert_policy" "burn" {
   combiner              = "AND"
   notification_channels = [google_monitoring_notification_channel.email.name]
   conditions {
-    display_name = "burn (1h)"
+    display_name = "fast burn (1h at 14.4x)"
     condition_threshold {
       filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", 1h)"
       threshold_value = "14.4"
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+    }
+  }
+  conditions {
+    display_name = "slow burn (6h at 6x)"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", 6h)"
+      threshold_value = "6"
       duration        = "0s"
       comparison      = "COMPARISON_GT"
     }
