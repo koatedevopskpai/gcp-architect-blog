@@ -95,27 +95,4 @@ const mins = readingTime(post.body);
   });
 </script>
 
-<script is:inline>
-  // Render ```mermaid fenced blocks client-side using the self-hosted UMD build
-  // (/vendor/mermaid.min.js). Loaded outside the bundler because the ESM path
-  // triggers the known "DOMPurify.addHook is not a function" error (two copies).
-  const mermaidBlocks = document.querySelectorAll('pre[data-language="mermaid"]');
-  if (mermaidBlocks.length > 0) {
-    const s = document.createElement("script");
-    s.src = "/vendor/mermaid.min.js";
-    s.onload = function () {
-      const mermaid = window.mermaid;
-      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
-      for (const pre of Array.from(mermaidBlocks)) {
-        const graph = pre.querySelector("code")?.textContent ?? "";
-        const container = document.createElement("div");
-        container.className = "mermaid";
-        container.textContent = graph;
-        const wrap = pre.closest(".code-wrap");
-        (wrap ?? pre).replaceWith(container);
-      }
-      mermaid.run({ querySelector: ".mermaid" });
-    };
-    document.head.appendChild(s);
-  }
-</script>
+

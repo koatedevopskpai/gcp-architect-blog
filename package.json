@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/render-mermaid-html.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "new:post": "node scripts/new-post.mjs",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "js-yaml": "^4.1.0",
+    "jsdom": "^30.1.2",
     "typescript": "^5.7.2"
   }
 }
