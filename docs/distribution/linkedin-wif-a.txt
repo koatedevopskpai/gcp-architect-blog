@@ -1,0 +1,29 @@
+Your GitHub Actions workflow is authenticating to GCP with a service account key.
+
+That key:
+→ never expires by default
+→ can't be traced to a person
+→ works from anywhere on the internet
+→ is sitting in a GitHub Secret right now
+
+If it leaks, every resource that account can reach is exposed.
+
+Workload Identity Federation removes the static-key risk.
+
+I wired it end to end with Terraform:
+
+• Workload identity pool + GitHub OIDC provider
+• Attribute condition that locks trust to one repo — and ideally branch/environment
+• Least-privilege service account — and a separate runtime SA
+• Keyless workflow (no secret anywhere, ever)
+• Failure-mode table for common real errors
+• Revocation playbook, including token-expiry behaviour
+• "What changes at scale" — pools per environment, environment-pinned conditions
+
+Proof tier 2: the Terraform applies for real, the workflow authenticates for real.
+
+Read it here: https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
+
+#GCP #Security #IAM #DevSecOps #Terraform
+
+Curious — how many teams are still running SA keys in CI? Honest answers, no judgement; we've all inherited them.

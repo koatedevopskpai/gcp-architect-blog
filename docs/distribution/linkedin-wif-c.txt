@@ -1,0 +1,15 @@
+"How do you audit CI access to GCP?"
+
+If the answer is "we have a service account key and we know which teams have it", you have a finding waiting to happen.
+
+WIF changes the answer to:
+
+→ repo, branch, workflow, and actor captured on every call
+→ queryable in Cloud Audit Logs via the federated principal / service-account delegation
+→ revocable by deleting one IAM binding — and existing tokens age out quickly
+
+Full production pattern — Terraform, failure modes, audit query, revocation playbook, Well-Architected mapping: https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
+
+#GCP #Security #SRE #CloudArchitecture
+
+What does your audit query look like?

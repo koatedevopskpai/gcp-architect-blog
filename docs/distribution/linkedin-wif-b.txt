@@ -1,0 +1,16 @@
+Stop storing GCP service account keys in GitHub Secrets.
+
+There's a better way, and it's been GA for years:
+
+→ GitHub mints a short-lived OIDC token per workflow run
+→ GCP STS validates it against your workload identity pool
+→ You get short-lived Google credentials
+→ No key. Nothing to rotate. Nothing to leak.
+
+Full Terraform, failure modes, audit queries, and a revocation playbook:
+
+https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
+
+#GCP #CloudSecurity #DevOps #GitHubActions
+
+What's the last static key you deleted?
