@@ -15,7 +15,8 @@ export default defineConfig({
   },
   redirects: {
     "/tracks": "/categories",
+    // Single entry (no trailing-slash twin): Astro treats both forms as the
+    // same route, and Firebase Hosting's trailingSlash setting serves either.
     "/posts/data-mlops/002-retrieval-mode-benchmark-three-modes-tied": "/posts/data-mlops/002-retrieval-mode-benchmark-four-modes",
-    "/posts/data-mlops/002-retrieval-mode-benchmark-three-modes-tied/": "/posts/data-mlops/002-retrieval-mode-benchmark-four-modes",
   },
 });
