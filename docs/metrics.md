@@ -62,10 +62,14 @@ user-ADC quota-project error (manage budgets via `gcloud`, as done for the blog)
 Cost note: VM accrues ~$12–14/mo (~$0.017/hr); budgets still read £0 (billing
 lags ~a day).
 
-> **⚠️ PENDING TEARDOWN:** `gcp-proof-platform` VM left UP for a 24h metrics
-> window (uptime samples + the 06:00 scheduled `eval-to-bq` run).
-> **Tear down 2026-10-10 morning:** `cd gcp-proof-platform; .\scripts\down.ps1`.
-> Leaving it up risks the £15/$20 budget; confirm the VM is gone after.
+> **✅ TORN DOWN 2026-10-10:** `terraform destroy` removed **29 resources**
+> (VM, static IP, subnetwork, VPC, service accounts). VM confirmed gone; cost
+> back to ~$0/month.
+>
+> **24h window result:** gateway stayed **HTTP 200** throughout; **1** `eval-to-bq`
+> execution (`eval-to-bq-v2cjz`, success); BigQuery `eval_reports` = **4 rows**
+> (last 2026-10-09); spend **£0**. Lesson: the **scheduler** resource wasn't
+> applied, so there was no automated overnight run — apply it for daily runs.
 
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
