@@ -1,0 +1,5 @@
+Here's the full write-up (Terraform, failure-mode table, revocation playbook, Well-Architected mapping):
+
+https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
+
+(Pin this comment if LinkedIn lets you — it keeps the link visible.)
