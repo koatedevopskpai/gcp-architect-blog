@@ -10,23 +10,23 @@ Link target:
 Your GitHub Actions workflow is authenticating to GCP with a service account key.
 
 That key:
-→ never expires
+→ never expires by default
 → can't be traced to a person
 → works from anywhere on the internet
 → is sitting in a GitHub Secret right now
 
 If it leaks, every resource that account can reach is exposed.
 
-Workload Identity Federation removes all of it.
+Workload Identity Federation removes the static-key risk.
 
 I wired it end to end with Terraform:
 
 • Workload identity pool + GitHub OIDC provider
-• Attribute condition that locks trust to one repo
+• Attribute condition that locks trust to one repo — and ideally branch/environment
 • Least-privilege service account — and a separate runtime SA
 • Keyless workflow (no secret anywhere, ever)
-• Failure-mode table for every real error
-• Revocation playbook for when something goes wrong
+• Failure-mode table for common real errors
+• Revocation playbook, including token-expiry behaviour
 • "What changes at scale" — pools per environment, environment-pinned conditions
 
 Proof tier 2: the Terraform applies for real, the workflow authenticates for real.
@@ -35,13 +35,16 @@ Read it here: https://gcp-architect-blog.web.app/posts/security-iam/001-workload
 
 #GCP #Security #IAM #DevSecOps #Terraform
 
+Curious — how many teams are still running SA keys in CI? Honest answers, no
+judgement; we've all inherited them.
+
 ---
 
 ## Variant B — "stop doing X" angle (best for X/Twitter cross-post)
 
 Stop storing GCP service account keys in GitHub Secrets.
 
-There's a better way, GA for years:
+There's a better way, and it's been GA for years:
 
 → GitHub mints a short-lived OIDC token per workflow run
 → GCP STS validates it against your workload identity pool
@@ -53,6 +56,8 @@ Full Terraform, failure modes, audit queries, and a revocation playbook:
 https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
 
 #GCP #CloudSecurity #DevOps #GitHubActions
+
+What's the last static key you deleted?
 
 ---
 
@@ -66,13 +71,15 @@ you have a finding waiting to happen.
 WIF changes the answer to:
 
 → repo, branch, workflow, and actor captured on every call
-→ queryable in Cloud Audit Logs by OIDC subject
-→ revocable by deleting one IAM binding
+→ queryable in Cloud Audit Logs via the federated principal / service-account delegation
+→ revocable by deleting one IAM binding — and existing tokens age out quickly
 
 Full production pattern — Terraform, failure modes, audit query, revocation
 playbook, Well-Architected mapping: https://gcp-architect-blog.web.app/posts/security-iam/001-workload-identity-federation-github-to-gcp/
 
 #GCP #Security #SRE #CloudArchitecture
+
+What does your audit query look like?
 
 ---
 
