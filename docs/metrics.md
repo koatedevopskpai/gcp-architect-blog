@@ -103,6 +103,11 @@ So the eval-pipeline + build metrics are **fully captured with the VM down**.
 The SLO/uptime/error-budget metrics require the always-on VM (and re-applying the
 monitoring stack), which was the intentionally cheap trade-off.
 
+**Pipeline reliability alert (added 2026-10-10, VM-free):** `eval-to-bq job failed`
+— fires when `run.googleapis.com/job/completed_execution_count{result="failed"} > 0`
+for 5m, to the email notification channel. So we now watch the eval pipeline even
+with the VM down.
+
 ### Prior baseline (2026-10-09, before restore)
 Stack was down: 0 instances, no `eval-to-bq` job, no BigQuery dataset,
 Cloud Build 1/8 success, £0 spend.
