@@ -29,6 +29,10 @@ observability — all for a budget a side project can afford.
 embeddings, with an availability SLO and burn alert — applied live, measured
 against a deterministic baseline, then destroyed for under five cents.
 
+Read this as a production-*shaped* demo with real numbers, not a full
+production system — the "differently" list near the end says exactly what
+would change.
+
 - **Who this is for:** engineers shipping RAG who want the managed-GCP shape,
   not another notebook.
 - **What you get:** a working `examples/production-rag-gcp` (app + Terraform),
@@ -38,7 +42,8 @@ against a deterministic baseline, then destroyed for under five cents.
 
 ```text
 client ─▶ Cloud Run (FastAPI)  /ingest  /query
-              │  Cloud SQL connector (unix socket, IAM)
+              │  Cloud SQL connector (unix socket)
+              │  path via IAM · Postgres auth via Secret Manager
               ▼
         Cloud SQL Postgres 15  ── pgvector (HNSW, cosine)
               ▲
@@ -139,8 +144,9 @@ The runtime SA gets exactly three roles: `cloudsql.client`,
 ### 5. Availability SLO + burn alert
 
 Same pattern as the Cloud Run golden path: a `google_monitoring_service`
-bound to the Cloud Run service, a 99%/30d availability SLO, and a 14.4×
-burn-rate alert on an email channel.
+bound to the Cloud Run service, a 99%/30d availability SLO, and a
+multi-window burn-rate alert — 14.4× over 1h (fast burn) paired with 6× over
+6h (slow burn) — on an email channel.
 
 ### 6. Seed it, measure it, compare it
 
@@ -156,7 +162,11 @@ Same 3 docs, same question, two embedders:
 | Deterministic hashing | 0.239 | 0.143 | weak separation |
 | Vertex `text-embedding-004` (256-dim) | **0.861** | 0.342 | real semantic ranking |
 
-Load run: **20/20 queries, avg 370ms, p95 651ms**. Ingest of 3 docs: ~2s.
+Load run: **20/20 queries, avg 370ms, p95 651ms, 0 errors**. Ingest of 3 short
+docs (~25 words total): ~2s. Methodology, so you can reproduce it: sequential
+requests from a single loop (no concurrency), 5 rotating questions,
+`top_k=2`, `min_instance_count = 0` — so the first request may include a cold
+start. Not a load test; a correctness-plus-latency smoke run.
 Evidence lives at [`/evidence/production-rag-gcp/`](/evidence/production-rag-gcp/).
 
 ## Live-run gotchas (each cost me time; now documented)
@@ -184,9 +194,19 @@ Evidence lives at [`/evidence/production-rag-gcp/`](/evidence/production-rag-gcp
 
 - **Latency:** p95 651ms on a cold-ish service; warm traffic and min-instances
   bring this down. The SLO dashboard shows it live.
-- **Cost:** `db-f1-micro` at $0.0105/hr + 10 GB SSD ≈ **under $0.05** for the
-  whole session (deploy → measure → destroy). Vertex embeddings for a demo are
-  a fraction of a cent at $0.025/1M tokens.
+- **Cost:** the whole session (deploy → measure → destroy) came in **under
+  $0.05**, broken down as:
+
+  | Line item | Rate | Session cost |
+  |---|---|---|
+  | `db-f1-micro` instance | $0.0105/hr | ~$0.02 (under 2h up) |
+  | 10 GB SSD | $0.17/GB/mo, prorated | under $0.01 |
+  | Cloud Run (scale-to-zero) | free tier covers this volume | ~$0 |
+  | Vertex embeddings (thousands of tokens) | $0.025/1M tokens | a fraction of a cent |
+  | Network (same region) | — | ~$0 |
+
+  (GCP list prices are USD; the demo project's £5 budget is a separate
+  guardrail on a GBP-denominated billing account.)
 - **Teardown is the feature:** `terraform destroy` after capture. The demo
   project's £5 budget is the guardrail, not the plan.
 - **Connections:** `db-f1-micro` has a tight connection ceiling, so the app
@@ -197,10 +217,28 @@ Evidence lives at [`/evidence/production-rag-gcp/`](/evidence/production-rag-gcp
 
 ## SLO / Security / FinOps notes
 
-- **Security:** IAM-only auth everywhere — Cloud SQL connector, Secret Manager
-  for the DB password, Vertex via workload identity. Zero keys.
+- **Security:** no long-lived API keys anywhere. The Cloud SQL connector
+  authorizes the network path via IAM; Postgres itself still authenticates with
+  a user/password, which lives in Secret Manager (not env-plaintext). Vertex
+  calls use the runtime service account via ADC — same identity, no keys.
 - **Cost:** cheapest tier, 10 GB disk, backups off, deleted not stopped.
-- **Reliability:** availability SLO + 14.4× burn alert on the API.
+- **Reliability:** availability SLO + 14.4×/1h and 6×/6h burn alerts on the API.
+
+## What I'd do differently for real production
+
+- **Private IP + VPC** instead of a public Cloud SQL IP (the connector works
+  either way; private removes the exposure entirely).
+- **PgBouncer** in front of Postgres once instance count or traffic grows past
+  the demo's handful of sockets.
+- **Alembic-style migrations** (or the Terraform Postgres provider) instead of
+  boot-time DDL.
+- **min-instances tradeoff made explicit**: 1 warm instance costs ~$8-9/mo on
+  Cloud Run and kills cold-start p99 — measure before choosing 0.
+- **Secret rotation** on a schedule, not just Secret Manager storage.
+- **Budget alerts already exist** (£5 guardrail); add cost-anomaly detection
+  before real traffic.
+- **CI/CD for schema + load testing at scale** — the demo proves the shape,
+  not the throughput.
 
 ## What this doesn't cover
 
@@ -226,7 +264,7 @@ Full code: [`examples/production-rag-gcp`](https://github.com/koatedevopskpai/gc
 | Pillar | How this post applies it |
 |---|---|
 | Reliability | Availability SLO + burn alert on the API |
-| Security | IAM-only (connector, Secret Manager, Vertex via identity); no keys |
+| Security | No long-lived keys (connector + Secret Manager + runtime SA); no keys |
 | Cost Optimization | Cheapest tier, 10 GB disk, backups off, destroyed same session |
 | Operational Excellence | Terraform as source of truth; reproducible run + teardown |
 
@@ -236,4 +274,5 @@ Full code: [`examples/production-rag-gcp`](https://github.com/koatedevopskpai/gc
 - [Vertex AI text embeddings pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) ($0.025/1M tokens)
 - [Cloud Run + Cloud SQL connector](https://cloud.google.com/run/docs/configuring/connecting-cloud-sql)
 - [Cloud SQL pricing](https://cloud.google.com/sql/pricing) (`db-f1-micro` $0.0105/hr)
+- [Cloud SQL editions: shared-core tiers and Postgres versions](https://cloud.google.com/sql/docs/postgres/choose-edition) (why PG15 keeps `db-f1-micro` available)
 - This blog: *Cloud Run golden path* (the serving pattern) and *Workload Identity Federation* (the keyless pattern)
