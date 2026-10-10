@@ -63,6 +63,21 @@ Corpus and queries:
 
 Rerank pool: hybrid retrieves the top 20 parents; the LLM re-orders to top 5.
 
+### At a glance — H@5 by query set
+
+```mermaid
+xychart-beta
+    title "H@5 by query set (80 synthetic docs)"
+    x-axis [Bare, Context, Paraphrase, Ambiguous]
+    y-axis "H@5" 0 --> 1
+    bar [1, 1, 1, 0.4]
+    bar [0.95, 0.95, 0.9, 0.35]
+    bar [0.9, 0.95, 0.95, 0.4]
+    bar [0.9, 0.9, 0.9, 0.4]
+```
+
+(Bar order for each query set: BM25, vector, hybrid, hybrid_rerank.)
+
 ### 1. Bare reference codes (lexical lookup)
 
 | Mode | H@5 | H@1 | MRR | nDCG@5 |
@@ -107,6 +122,14 @@ Rerank pool: hybrid retrieves the top 20 parents; the LLM re-orders to top 5.
 | vector | 1308 ms | 1285 ms | 1497 ms |
 | hybrid | 1389 ms | 1366 ms | 1527 ms |
 | hybrid_rerank | 2363 ms | 2386 ms | 2568 ms |
+
+```mermaid
+xychart-beta
+    title "Per-query latency (p50, ms)"
+    x-axis [bm25, vector, hybrid, rerank]
+    y-axis "ms" 0 --> 2500
+    bar [592, 1285, 1366, 2386]
+```
 
 ## What this means
 
