@@ -79,3 +79,12 @@ New-OgImage `
     -BgHex "#062825" `
     -AccentHex "#34D399" `
     -TextHex "#ECFDF5"
+
+New-OgImage `
+    -OutFile (Join-Path $ogDir "003-reranking-semantic-crowded.png") `
+    -Eyebrow "AZURE AI SEARCH - RERANKING" `
+    -Title "Reranking earns its latency when the pool is large and the needle is inside" `
+    -Footer $footer `
+    -BgHex "#1E293B" `
+    -AccentHex "#38BDF8" `
+    -TextHex "#F0F9FF"
