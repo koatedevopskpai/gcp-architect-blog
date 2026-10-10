@@ -31,8 +31,8 @@ The negative result is the point. Here's the harness that proved it.
 
 - **vector** — pure embedding similarity over child chunks.
 - **hybrid** — keyword (BM25) + vector, fused with reciprocal rank fusion.
-- **hybrid_rerank** — hybrid candidates, then an LLM reranks the parent sections
-  before synthesis.
+- **hybrid_rerank** — hybrid candidates (top 20 parents), re-ranked to the top 5
+  by the LLM before synthesis.
 
 All three return deduplicated parent sections with their text and section title.
 
@@ -59,36 +59,55 @@ Two things make a retrieval benchmark trustworthy:
 
 ## The results
 
-Hit-rate@5:
+**Hit-rate@5 and MRR**, measured on the final 5 candidates. Rerank candidate
+pool: hybrid retrieved the top 20 parents, the LLM re-ordered them down to 5.
 
-| Corpus | vector | hybrid | hybrid_rerank |
-|---|---|---|---|
-| 16 curated docs, 16 Q | 1.00 | 1.00 | 1.00 |
-| 80 synthetic docs, code + context | 0.95 | 0.95 | 0.95 |
-| 80 synthetic docs, bare codes | 0.95 | 0.95 | 0.95 |
+| Corpus | Queries | vector (Hit@5 / MRR) | hybrid (Hit@5 / MRR) | hybrid_rerank (Hit@5 / MRR) |
+|---|---|---|---|---|
+| Curated policies | 16 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
+| 80 synthetic, code + context | 80 | 0.95 / 0.95 | 0.95 / 0.95 | 0.95 / 0.95 |
+| 80 synthetic, bare codes | 80 | 0.95 / 0.95 | 0.95 / 0.95 | 0.95 / 0.95 |
 
 We expected vector to fall over on random tokens. It didn't.
 
+Read the MRR column carefully: it equals hit-rate in every row, because whenever
+the expected source was recovered it was already **rank 1**. That is the ceiling
+effect, and it is exactly why the reranker row cannot improve — the metric is
+saturated before a reranker ever sees the list.
+
+A size caveat, so this is read as what it is: an **illustrative validation run,
+not a proof benchmark**. 16 curated + 80 synthetic queries is small; a swing of
+1–2 queries is ~1%.
+
 ## Why they tied
 
-`text-embedding-3-large` is simply good. Our documents shared almost all their
-text, so the only signal distinguishing them — the code — was also the dominant
-signal in the embedding differences. Dense retrieval found the needle.
+Three effects, in order of importance:
 
-And hybrid can't *lose* to vector: it includes vector, plus a keyword leg. When
-vector already recalls everything, hybrid has nothing to add. The reranker
-reorders candidates, but recall was already 100% at rank 1 — **MRR was
-saturated**, so reranking couldn't help either.
+1. **Ceiling effect on clean data.** When the ground truth is already rank 1, a
+   downstream reranker has nowhere to go. Rerankers earn their latency when the
+   candidate list holds dozens of *loosely* relevant documents — not when the
+   target is already the top hit.
+2. **Controlled token isolation.** Our synthetic policies shared nearly identical
+   boilerplate, so the unique reference code was the dominant differentiator in
+   embedding space. That is an unnatural, low-noise condition. It tells you nothing
+   about how `REF-9K2MNP` behaves inside a diverse, noisy production corpus — it
+   only shows the needle dominated the cosine delta here.
+3. **Hybrid subsumes dense search.** Azure AI Search fuses BM25 and dense vectors
+   with reciprocal rank fusion. When dense retrieval already surfaces ground truth
+   at rank 1, the keyword leg adds no net recall.
 
 ## What this actually means
 
-- **Default to hybrid.** It never recalls less than vector and costs the same on
-  Azure AI Search. It's insurance, not a silver bullet.
-- **Rerank only when ranking is the bottleneck.** If hit-rate is high but
-  top-1 accuracy (or answer quality) is not, a reranker earns its latency.
+- **Default to hybrid.** It never recalls less than vector, and on Azure AI Search
+  the extra cost is negligible — RRF is native, no extra service, no extra calls.
+  It's insurance, not a silver bullet.
+- **Rerank only when ranking is the bottleneck — and count the cost.** The LLM
+  reranker pays a token cost per ranked candidate and adds ~200–800 ms of tail
+  latency per query. When hit-rate is high but top-1 accuracy is not, that buys
+  something; when recall is already solved (our data), it buys nothing.
 - **Measure on your data.** Retrieval-mode choice is empirical. Our result is
-  specific to a small, clean, well-embedded corpus — yours may separate sharply.
-  Now you have the harness to find out.
+  specific to a small, clean, synthetic corpus — a diverse production corpus may
+  separate the modes sharply. Now you have the harness to find out.
 
 ## Extras
 
