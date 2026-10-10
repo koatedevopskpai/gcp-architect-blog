@@ -13,7 +13,8 @@ and captured proof under `public/evidence/<slug>/`. No slideware.
 
 ## Stack
 
-- **Astro 5** (static output, MDX, Shiki highlighting, client-side Mermaid).
+- **Astro 5** (static output, MDX, Shiki highlighting, Mermaid diagrams
+  pre-rendered to inline SVG at build time via Playwright/Chromium).
 - **Single `posts` content collection** — no duplicated per-category trees.
 - **7 pillars (A–G)**; the letter is derived from `category`, never stored.
 - **3 cloud tracks (aws | gcp | azure | multi)**; a cloud is optional on a post and
