@@ -1,0 +1,6 @@
+Comparison on the same 3 docs / same question ("How does Cloud Run handle idle traffic?", top-2):
+- deterministic hashing embedder: top 0.239, second 0.143 (weak separation)
+- Vertex text-embedding-004 (256-dim): top 0.861, second 0.342 (strong semantic separation)
+
+Vertex pricing: $0.025 / 1M tokens. This demo embedded ~dozens of short
+texts (thousands of tokens total) => a fraction of a cent.

@@ -1,0 +1,3 @@
+Window: Cloud SQL db-f1-micro ($0.0105/hr) + 10 GB SSD (~$0.0023/hr),
+up ~1-2h then DELETED. Expected total <$0.05. Instance deleted (not stopped)
+so no lingering storage charge. Demo project guardrail: 5 GBP budget.

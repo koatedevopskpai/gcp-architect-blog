@@ -1,0 +1,1 @@
+{"passages":[{"id":"8c684108267677f6","text":"Cloud Run scales to zero when there is no traffic.","score":0.861},{"id":"78c9cf187ec3baae","text":"BigQuery stores analytics data for offline reporting.","score":0.342}],"grounded":true}
