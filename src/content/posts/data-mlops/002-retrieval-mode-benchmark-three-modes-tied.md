@@ -1,6 +1,6 @@
 ---
-title: "We built four retrieval modes and they tied"
-description: "A pluggable retrieval layer (BM25, vector, hybrid, LLM-rerank) with a deterministic metrics benchmark. The honest result: on a small synthetic corpus, they all tied."
+title: "Four retrieval modes, benchmarked: when they tie, when BM25 wins, and what a reranker costs"
+description: "A deterministic retrieval benchmark (BM25, vector, hybrid, LLM-rerank) with H@5/H@1/MRR/nDCG and measured latency. BM25 wins lookups, hybrid beats vector, rerank costs a second."
 category: "data-mlops"
 cloud: "azure"
 tags: ["rag", "azure-ai-search", "retrieval", "benchmark", "evaluation", "llm"]
@@ -21,22 +21,18 @@ ogImage: "/og/002-retrieval-mode-benchmark.png"
 ## Overview
 
 Every RAG tutorial tells you to "use hybrid search" and "add a reranker." Few
-show the measurement that justifies either. We built a pluggable retrieval layer
-with a deterministic benchmark — and the honest result is: **on a small, clean,
-near-duplicate, synthetic corpus, all four retrieval modes tied.**
+show the measurement that justifies either. So we built a pluggable retrieval
+layer with four strategies and benchmarked them on harder synthetic queries:
 
-The negative result is the point. Here is the harness that proved it, the
-reasons the numbers came out the way they did, and the limits of what they mean.
+- **bm25** — keyword only (Azure AI Search full-text leg, no vectors)
+- **vector** — pure embedding similarity
+- **hybrid** — keyword + vector, fused with reciprocal rank fusion
+- **hybrid_rerank** — hybrid candidates re-ranked by the LLM
 
-## The modes
-
-- **bm25** — keyword only, Azure AI Search's full-text leg (no vectors).
-- **vector** — pure embedding similarity over child chunks.
-- **hybrid** — keyword (BM25) + vector, fused with reciprocal rank fusion.
-- **hybrid_rerank** — hybrid candidates (top 20 parents), re-ranked to the top 5
-  by the LLM before synthesis.
-
-All four return deduplicated parent sections with their text and section title.
+The honest takeaways, up front: **identifier/lexical queries are a BM25 win;
+paraphrase-style queries are a hybrid win over vector; and the LLM reranker
+added about a second of latency without beating either.** This post is the
+harness, the numbers, and the limits of what they mean.
 
 ```mermaid
 flowchart LR
@@ -44,117 +40,120 @@ flowchart LR
   Q --> K[BM25 keyword]
   V --> RRF[RRF merge]
   K --> RRF
-  RRF --> R[LLM rerank parents]
+  RRF --> H[hybrid top 20]
+  H --> R[LLM rerank to top 5]
   R --> S[synthesize]
 ```
 
 ## The benchmark
 
-Two things make a retrieval benchmark trustworthy:
+Deterministic metrics, per query: **hit rate @5**, **hit rate @1**, **MRR**, and
+**nDCG @5**, plus the **rank of the expected source** (no LLM-as-judge noise;
+retrieval-only mode makes zero API calls).
 
-1. **Deterministic metrics.** We measure **hit-rate@5**, **hit-rate@1**, **MRR**,
-   and **nDCG@5** (no LLM-as-judge noise; zero API calls in retrieval-only mode),
-   plus the **rank of the expected source** per query so nothing is summarized away.
-2. **Queries aimed at the hard case for dense retrieval.** We generated an
-   80-document near-duplicate policy corpus, each doc with a unique reference
-   code (`REF-9K2MNP`) and a limit, and asked for the exact codes — with and
-   without surrounding context. As flagged below, that makes these more *lexical*
-   lookups than semantic ones.
+Corpus and queries:
+
+- **80 near-duplicate synthetic policy docs**, each with a unique reference code
+  (`REF-9K2MNP`) and a numeric limit.
+- Four query types, 20 each (80 queries): bare code, code + context,
+  paraphrase-of-limit, and ambiguous topic. Designed so lexical hits, semantic
+  hits, and genuinely unsolvable queries all appear.
 
 ## The results
 
-Metrics are measured on the **final 5 candidates**. Rerank pool: hybrid retrieved
-the top 20 parents; the LLM re-ordered down to 5. Dense and keyword legs share the
-same top-20 window, so hit-rates compare like for like.
+Rerank pool: hybrid retrieves the top 20 parents; the LLM re-orders to top 5.
 
-| Set | Docs | Queries | Metric | vector | hybrid | hybrid_rerank |
-|---|---|---|---|---|---|---|
-| Curated policies | 16 | 16 | H@5 / H@1 / MRR / nDCG | 1.00 / 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 / 1.00 |
-| Synthetic (code + context) | 80 | 20 | H@5 / H@1 / MRR / nDCG | 0.95 / 0.95 / 0.95 / 0.95 | 0.95 / 0.95 / 0.95 / 0.95 | 0.95 / 0.95 / 0.95 / 0.95 |
-| Synthetic (bare codes) | 80 | 20 | H@5 / H@1 / MRR / nDCG | 0.95 / 0.95 / 0.95 / 0.95 | 0.95 / 0.95 / 0.95 / 0.95 | 0.95 / 0.95 / 0.95 / 0.95 |
+### 1. Bare reference codes (lexical lookup)
 
-Every row is saturated: **H@1 = MRR = nDCG@5 = H@5**, because whenever the expected
-source was recovered it was already **rank 1**. A reranker cannot improve a metric
-that is saturated before it runs — and Hit@5 cannot change by construction when
-the pool and the final-five window are the same size.
+| Mode | H@5 | H@1 | MRR | nDCG@5 |
+|---|---|---|---|---|
+| bm25 | 1.00 | 1.00 | 1.00 | 1.00 |
+| vector | 0.95 | 0.95 | 0.95 | 0.95 |
+| hybrid | 0.90 | 0.90 | 0.90 | 0.90 |
+| hybrid_rerank | 0.90 | 0.90 | 0.90 | 0.90 |
 
-We expected vector to fall over on random tokens. It didn't.
+### 2. Code with context
 
-A **BM25-only baseline** is wired into the harness (`compare_modes.py` includes a
-`bm25` mode) but wasn't regenerated after the resources were torn down. On these
-exact-code queries it is *expected to tie*: they are lexical lookups and keyword
-matching alone solves them — which is exactly why this set exercises keyword
-matching, not vector-vs-hybrid discrimination.
+| Mode | H@5 | H@1 | MRR | nDCG@5 |
+|---|---|---|---|---|
+| bm25 | 1.00 | 1.00 | 1.00 | 1.00 |
+| vector | 0.95 | 0.95 | 0.95 | 0.95 |
+| hybrid | 0.95 | 0.95 | 0.95 | 0.95 |
+| hybrid_rerank | 0.90 | 0.90 | 0.90 | 0.90 |
 
-And a size caveat, so this is read as what it is: an **illustrative validation
-run, not a proof benchmark**. 56 queries across three sets (16 + 20 + 20); a
-swing of 1–2 queries is roughly 2%.
+### 3. Paraphrase style ("Which policy sets a maximum of N units?")
 
-## Why they tied
+| Mode | H@5 | H@1 | MRR | nDCG@5 |
+|---|---|---|---|---|
+| bm25 | 1.00 | 1.00 | 1.00 | 1.00 |
+| vector | 0.90 | 0.55 | 0.70 | 0.75 |
+| hybrid | 0.95 | 0.90 | 0.93 | 0.93 |
+| hybrid_rerank | 0.90 | 0.90 | 0.90 | 0.90 |
 
-Four effects, in order of importance:
+### 4. Ambiguous topic (deliberately underspecified)
 
-1. **Ceiling effect on clean data.** When the ground truth is already rank 1, a
-   downstream reranker has nowhere to go. Rerankers earn their latency when the
-   candidate list holds dozens of *loosely* relevant documents — not when the
-   target is already the top hit.
-2. **These are lexical queries.** Asking for an exact `REF-XXXXXX` is a substring
-   problem. Keyword matching alone (the `bm25` leg) is expected to solve them, so
-   the set cannot separate keyword recall from semantic recall.
-3. **Controlled token isolation.** The synthetic policies shared nearly identical
-   boilerplate, so the unique code was the dominant differentiator in embedding
-   space. That's an unnatural, low-noise condition — not a claim about how dense
-   retrieval behaves on `REF-9K2MNP` inside a diverse, noisy corpus.
-4. **Hybrid subsumes dense search.** Azure AI Search fuses BM25 and dense vectors
-   with reciprocal rank fusion. When dense retrieval already surfaces ground truth
-   at rank 1, the keyword leg adds no net recall.
+| Mode | H@5 | H@1 | MRR | nDCG@5 |
+|---|---|---|---|---|
+| bm25 | 0.40 | 0.00 | 0.10 | 0.17 |
+| vector | 0.35 | 0.00 | 0.11 | 0.17 |
+| hybrid | 0.40 | 0.00 | 0.12 | 0.19 |
+| hybrid_rerank | 0.40 | 0.00 | 0.12 | 0.19 |
 
-Combine 2 and 3 and the claim is deliberately narrow: **on 56 low-noise, lexical
-queries, nothing beats rank-1 recall — not "hybrid and reranking are unnecessary
-in general."**
+### Measured latency (per query, paraphrase set, n=20)
+
+| Mode | avg | p50 | p95 |
+|---|---|---|---|
+| bm25 | 601 ms | 592 ms | 737 ms |
+| vector | 1308 ms | 1285 ms | 1497 ms |
+| hybrid | 1389 ms | 1366 ms | 1527 ms |
+| hybrid_rerank | 2363 ms | 2386 ms | 2568 ms |
+
+## What this means
+
+1. **Lexical/identifier queries are a BM25 problem.** On exact codes, the
+   keyword-only leg hit 1.00 while vector/hybrid were 0.90–0.95. That confirms
+   the review's suspicion: earlier "ties" were because those sets were lookup
+   tests. If your retrieval is identifier lookups, you may not need embeddings at
+   all — and it's the cheapest mode by far (no query embeddings, ~0.6 s).
+2. **Hybrid beats vector where it should.** On paraphrase queries, MRR is 0.93
+   (hybrid) vs 0.70 (vector) — the keyword leg catches the number that dense
+   vectors miss — for ~80 ms extra. On Azure AI Search that leg is native and
+   nearly free.
+3. **The reranker added a second and gained nothing here.** p50 went from ~1.4 s
+   to ~2.4 s and recall did not improve on any set. It will help when a crowded,
+   borderline candidate list needs re-ranking — that is not what these sets are.
+4. **Ambiguous queries defeat everyone.** All four modes sit at ~0.35–0.40 H@5
+   and 0.00 H@1. That is a query-quality problem, not a retrieval problem — the
+   signal is not there to find.
 
 ## Threats to validity
 
-- **Synthetic, near-duplicate corpus.** Shared boilerplate makes the code the sole
-  discriminative signal — a best case for embeddings, not a stand-in for diverse
-  production data where the right document competes with many topically-similar,
-  code-free neighbours.
-- **Lexical queries.** The exact-code sets are lookup problems; a BM25 baseline is
-  expected to tie, so they say nothing about vector-vs-keyword discrimination.
-- **Small sample, no confidence intervals.** 56 queries; treat this as a sanity
-  check, not a posterior over retrieval modes.
-- **No measured latency/cost here.** The reranker cost/latency argument below is
-  general reasoning, not figures from this run.
-
-## What this actually means
-
-- **Default to hybrid.** It never recalls less than vector, and on Azure AI Search
-  the extra leg is nearly free — RRF is native, no extra service, no extra calls.
-  It's insurance, not a silver bullet.
-- **Rerank only when ranking is the bottleneck — and count the cost.** The LLM
-  reranker pays a token cost per ranked candidate and adds ~200–800 ms of tail
-  latency per query. When hit-rate is high but top-1 accuracy is not, that buys
-  something; when recall is already solved (our data), it buys nothing.
-- **Measure on your data.** Retrieval-mode choice is empirical. Our result is a
-  sanity check on a small, clean, synthetic corpus — a diverse production corpus
-  may separate the modes sharply. The harness ships so you can find out.
+- **Synthetic, near-duplicate corpus.** Shared boilerplate makes the unique
+  token the dominant signal; a best case for embeddings, not a stand-in for
+  diverse production data.
+- **Small sample.** 80 queries per type; no confidence intervals. Treat as a
+  sanity check, not a posterior over retrieval modes.
+- **Paraphrase here is still number lookup.** The "paraphrase" queries name the
+  exact limit, so BM25 also solves them. Genuinely semantic, low-overlap queries
+  are a separate, harder benchmark.
+- **Latency is local, serial, coldish.** These are per-call timings from one dev
+  box; treat as relative, not absolute.
 
 ## Extras
 
-- `bm25` (keyword-only) is a full mode in `compare_modes.py`; run it against live
-  resources to add the missing baseline row and per-mode latency.
-- `QUERY_TYPE` filters the set: `exact_code_bare`, `exact_code_context`,
-  `paraphrase_limit`, `ambiguous_topic` (the harder types are in the generator —
-  good candidates for a second, larger run).
-- The benchmark runs with `SKIP_LLM_EVAL=1` making **zero** LLM calls; ingestion
-  is the only real cost (~320 vectors, cents).
+- Run it yourself: `eval/compare_modes.py` with `SKIP_LLM_EVAL=1`,
+  `GOLDEN_PATH=eval/golden_set_large.jsonl`, and `QUERY_TYPE` = one of
+  `exact_code_bare`, `exact_code_context`, `paraphrase_limit`, `ambiguous_topic`.
+- `bm25` is a first-class mode (keyword only — no embeddings).
+- Ingestion is the only real token cost (~320 vectors, cents).
 
-## The takeaway
+## Takeaway
 
-A negative result you can reproduce beats a cherry-picked win. The deliverable
-isn't "hybrid is best" — it's a pluggable retrieval layer plus a deterministic
-benchmark and a corpus generator you can point at your own data. That's the
-difference between a demo and an engineering decision.
+A reproducible benchmark beats a cherry-picked winner. The takeaway isn't "use
+hybrid" or "skip reranking" in the abstract — it's: default to hybrid, add a
+reranker only when ranking is the bottleneck (and measure it), and for
+identifier lookups consider **BM25 alone**. The deliverable is the harness you
+can point at your own corpus.
 
 ## Links
 
