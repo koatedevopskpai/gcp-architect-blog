@@ -155,7 +155,10 @@ main.container { flex: 1 0 auto; padding-top: 1.75rem; padding-bottom: 1rem; }
 .callout-warn { border-left-color: var(--warn); background: var(--warn-bg); }
 .callout-tip { border-left-color: var(--tip); background: var(--tip-bg); }
 
-.mermaid { margin: 1.5rem 0; text-align: center; }
+.mermaid { margin: 1.5rem 0; text-align: center; color: #0f172a; }
+.mermaid svg { max-width: 100%; height: auto; }
+.mermaid svg text { fill: #0f172a; }
+.mermaid svg .node rect, .mermaid svg .node circle, .mermaid svg .node polygon { stroke-width: 1.5px; }
 
 .page-header { padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.78rem; color: var(--fg-muted); margin: 0 0 0.4rem; }

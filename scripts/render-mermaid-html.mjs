@@ -14,7 +14,25 @@ const page = await browser.newPage();
 await page.setContent("<!DOCTYPE html><html><body></body></html>");
 await page.addScriptTag({ path: MERMAID_UMD });
 await page.evaluate(() => {
-  window.mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+  window.mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#1e293b",
+      primaryTextColor: "#ffffff",
+      primaryBorderColor: "#0f172a",
+      secondaryColor: "#334155",
+      tertiaryColor: "#f1f5f9",
+      lineColor: "#475569",
+      textColor: "#0f172a",
+      mainBkg: "#1e293b",
+      nodeBorder: "#0f172a",
+      edgeLabelBackground: "#ffffff",
+      clusterBkg: "#f1f5f9",
+      clusterBorder: "#cbd5e1",
+      fontFamily: "Segoe UI, UI Sans-Serif, sans-serif",
+    },
+  });
 });
 
 const htmlFiles = [];
