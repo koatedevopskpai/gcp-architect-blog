@@ -24,7 +24,9 @@ latency and security.
 ## CORE SKILLS
 
 **AI / LLM:** RAG (hybrid retrieval, reranking, chunking, query decomposition) ·
-Agentic workflows & tool use · **LLM evaluations** (golden sets, LLM-as-judge,
+Knowledge Graphs (**Neo4j/Cypher**, entity expansion — verified against live Neo4j) ·
+GraphRAG · Agentic workflows & tool use (incl. **LangGraph** StateGraph) ·
+**LLM evaluations** (golden sets, LLM-as-judge,
 RAGAS-style, regression gates) · Prompt engineering · Guardrails & groundedness ·
 Pydantic v2 structured outputs · Deterministic-first architecture
 
@@ -49,12 +51,15 @@ Deterministic-first scheduling optimizer: a unit-tested **CPM engine** (critical
 path, float, cycle detection) with **Scheduler / Risk / Optimiser agents** under
 an orchestrator; LLM enrichment optional, wrapped in retry/backoff, a **circuit
 breaker** and **Pydantic-v2-validated** calls with deterministic fallback. CI
-gate: 19 tests / ≥80% coverage + golden-case evals.
+gate: 19 tests / ≥80% coverage + golden-case evals. Optional **LangGraph**
+StateGraph (`plan → risk → optimise`) over the same engine.
 
 **agentic-rag-hybrid** — github.com/koatedevopskpai/agentic-rag-hybrid
 Planner-executor RAG with **hybrid retrieval** (BM25 sparse + dense), **Reciprocal
 Rank Fusion** and a **groundedness filter**. Deterministic (no LLM in the
 retrieval path); **97% test coverage** + assertion-based retrieval eval gate.
+GraphRAG layer (entity-seeded expansion) **verified 3/3 exact match against a
+live Neo4j**; `Neo4jGraphStore` swaps in via Cypher with zero retrieval-code changes.
 
 **llm-evals-demo** — github.com/koatedevopskpai/llm-evals-demo
 A CI quality bar for LLM/RAG apps: golden dataset, RAGAS faithfulness +
@@ -83,7 +88,8 @@ Run.
 - Designed and shipped production LLM systems — **RAG, agents, evals** — with a
   deterministic-first architecture and automated evaluation gates.
 - Built and open-sourced the multi-agent optimizer, hybrid RAG and LLM-evals
-  harness above (agents, retrieval, evals, resilience).
+  harness above (agents, retrieval, evals, resilience) — incl. graph retrieval
+  (Cypher/entity expansion) verified 3/3 against live Neo4j.
 - Owned delivery end to end: Terraform-first infrastructure, keyless CI/CD
   (Workload Identity Federation), observability and FinOps.
 - Created two live cloud platforms (`gcp-proof-platform`, `ai-platform-proof`)

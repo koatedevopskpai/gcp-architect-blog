@@ -16,9 +16,9 @@ Contractor tone: immediate availability, outside IR35 via limited company
 > agents, Pydantic v2, resilience patterns). Python/FastAPI throughout, shipped
 > on GCP + AWS with Terraform and keyless CI.
 >
-> On Neo4j/GraphRAG specifically: my retrieval work is pgvector-based with
-> entity/relation expansion patterns; I can go deep on Cypher + Neo4j fast, and
-> my graph retrieval module documents the exact swap. Immediate availability,
+> On Neo4j/GraphRAG specifically: my graph retrieval layer (entity-seeded
+> expansion, Cypher-backed swap) is verified 3/3 exact match against a live
+> Neo4j — `agentic-rag-hybrid` runs it today. Immediate availability,
 > outside IR35 via limited company, fully remote.
 
 Links: agentic-rag-hybrid · llm-evals-demo · multi-agent-optimizer · ai-platform-proof
