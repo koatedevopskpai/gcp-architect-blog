@@ -1,0 +1,2 @@
+load: 20 queries, ok=20/20, avg=370ms, p95=651ms (2026-10-10)
+seed: 3 docs ingested via Vertex text-embedding-004 (output_dimensionality=256), pgvector HNSW/cosine
