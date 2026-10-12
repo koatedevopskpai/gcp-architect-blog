@@ -95,7 +95,36 @@ for (const file of htmlFiles) {
       const raw = await page.evaluate(
         async ({ src, id }) => {
           const { svg } = await window.mermaid.render(id, src);
-          return svg;
+          // Sequence-diagram message labels render bare — lifelines run
+          // through the text. Inject a white label box behind each one,
+          // measured in the live DOM so metrics match the rendered SVG.
+          const host = document.createElement("div");
+          host.style.cssText = "position:absolute;left:-99999px;top:0;";
+          host.innerHTML = svg;
+          document.body.appendChild(host);
+          const svgEl = host.querySelector("svg");
+          if (svgEl) {
+            for (const t of svgEl.querySelectorAll("text.messageText")) {
+              let b;
+              try { b = t.getBBox(); } catch { continue; }
+              if (!b || b.width === 0) continue;
+              const padX = 7, padY = 4;
+              const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+              rect.setAttribute("x", (b.x - padX).toFixed(1));
+              rect.setAttribute("y", (b.y - padY).toFixed(1));
+              rect.setAttribute("width", (b.width + padX * 2).toFixed(1));
+              rect.setAttribute("height", (b.height + padY * 2).toFixed(1));
+              rect.setAttribute("rx", "4");
+              rect.setAttribute("ry", "4");
+              rect.setAttribute("fill", "#ffffff");
+              rect.setAttribute("stroke", "#cbd5e1");
+              rect.setAttribute("stroke-width", "1");
+              t.parentNode.insertBefore(rect, t);
+            }
+          }
+          const out = svgEl ? new XMLSerializer().serializeToString(svgEl) : svg;
+          host.remove();
+          return out;
         },
         { src: code, id: `mm-${idCounter++}` },
       );
