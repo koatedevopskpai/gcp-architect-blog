@@ -18,18 +18,27 @@ await page.evaluate(() => {
     startOnLoad: false,
     theme: "base",
     themeVariables: {
-      primaryColor: "#1e293b",
-      primaryTextColor: "#ffffff",
-      primaryBorderColor: "#0f172a",
-      secondaryColor: "#334155",
-      tertiaryColor: "#f1f5f9",
+      primaryColor: "#f1f5f9",
+      primaryTextColor: "#0f172a",
+      primaryBorderColor: "#94a3b8",
+      secondaryColor: "#ffffff",
+      tertiaryColor: "#f8fafc",
       lineColor: "#475569",
       textColor: "#0f172a",
-      mainBkg: "#1e293b",
-      nodeBorder: "#0f172a",
+      mainBkg: "#ffffff",
+      nodeBorder: "#94a3b8",
       edgeLabelBackground: "#ffffff",
-      clusterBkg: "#f1f5f9",
+      clusterBkg: "#f8fafc",
       clusterBorder: "#cbd5e1",
+      actorBkg: "#f1f5f9",
+      actorTextColor: "#0f172a",
+      actorLineColor: "#94a3b8",
+      signalColor: "#0f172a",
+      signalTextColor: "#0f172a",
+      noteBkgColor: "#fef9c3",
+      noteTextColor: "#0f172a",
+      noteBorderColor: "#ca8a04",
+      activationBkgColor: "#e2e8f0",
       fontFamily: "Segoe UI, UI Sans-Serif, sans-serif",
     },
   });
@@ -64,7 +73,9 @@ function fixContrast(svg) {
   for (const [from, to] of Object.entries(PALETTE)) {
     out = out.split(from).join(to);
   }
-  out = out.split('fill="#ffffff"').join('fill="#0f172a"');
+  // White strokes vanish on the light page; text fills are trusted from the
+  // light theme (do NOT blanket-replace white text — xychart value labels
+  // sit on saturated bars where white is the readable choice).
   out = out.split('stroke="#ffffff"').join('stroke="#94a3b8"');
   return out;
 }
