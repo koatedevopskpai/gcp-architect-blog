@@ -38,3 +38,6 @@ crash.log
 # Career / personal documents — local only, never published
 docs/career/
 
+# Distribution drafts / personal assets — local only, never published
+docs/distribution/
+
