@@ -40,6 +40,7 @@ await page.evaluate(() => {
       noteBorderColor: "#ca8a04",
       activationBkgColor: "#e2e8f0",
       fontFamily: "Segoe UI, UI Sans-Serif, sans-serif",
+      fontSize: "18px",
     },
   });
 });
