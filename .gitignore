@@ -35,3 +35,6 @@ crash.log
 # Firebase
 .firebase/
 
+# Career / personal documents — local only, never published
+docs/career/
+
