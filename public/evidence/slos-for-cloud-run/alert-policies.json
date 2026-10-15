@@ -1,0 +1,119 @@
+﻿[
+  {
+    "combiner": "AND",
+    "conditions": [
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"5m\")",
+          "thresholdValue": 14.4
+        },
+        "displayName": "14.4x over 5m",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/5026336592404078501/conditions/5026336592404077424"
+      },
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"1h\")",
+          "thresholdValue": 14.4
+        },
+        "displayName": "14.4x over 1h",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/5026336592404078501/conditions/5026336592404077065"
+      }
+    ],
+    "creationRecord": {
+      "mutateTime": "2026-10-15T10:49:50.016368580Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "displayName": "slo-demo availability ? fast burn (14.4x)",
+    "enabled": true,
+    "mutationRecord": {
+      "mutateTime": "2026-10-15T10:49:50.016368580Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "name": "projects/gcp-architect-demo-2026/alertPolicies/5026336592404078501",
+    "notificationChannels": [
+      "projects/gcp-architect-demo-2026/notificationChannels/5310982248226783902"
+    ]
+  },
+  {
+    "combiner": "AND",
+    "conditions": [
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"30m\")",
+          "thresholdValue": 6.0
+        },
+        "displayName": "6x over 30m",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095349055/conditions/6714509340095350640"
+      },
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"6h\")",
+          "thresholdValue": 6.0
+        },
+        "displayName": "6x over 6h",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095349055/conditions/6714509340095349803"
+      }
+    ],
+    "creationRecord": {
+      "mutateTime": "2026-10-15T10:49:46.739705780Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "displayName": "slo-demo availability ? medium burn (6x)",
+    "enabled": true,
+    "mutationRecord": {
+      "mutateTime": "2026-10-15T10:49:46.739705780Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095349055",
+    "notificationChannels": [
+      "projects/gcp-architect-demo-2026/notificationChannels/5310982248226783902"
+    ]
+  },
+  {
+    "combiner": "AND",
+    "conditions": [
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"6h\")",
+          "thresholdValue": 1.0
+        },
+        "displayName": "1x over 6h",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095351271/conditions/6714509340095348760"
+      },
+      {
+        "conditionThreshold": {
+          "comparison": "COMPARISON_GT",
+          "duration": "0s",
+          "filter": "select_slo_burn_rate(\"projects/558401798508/services/slo-demo-svc/serviceLevelObjectives/slo-demo-availability\", \"24h\")",
+          "thresholdValue": 1.0
+        },
+        "displayName": "1x over 24h",
+        "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095351271/conditions/6714509340095352019"
+      }
+    ],
+    "creationRecord": {
+      "mutateTime": "2026-10-15T10:50:52.273591419Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "displayName": "slo-demo availability ? slow burn (1x)",
+    "enabled": true,
+    "mutationRecord": {
+      "mutateTime": "2026-10-15T10:50:52.273591419Z",
+      "mutatedBy": "koatekpai@outlook.com"
+    },
+    "name": "projects/gcp-architect-demo-2026/alertPolicies/6714509340095351271",
+    "notificationChannels": [
+      "projects/gcp-architect-demo-2026/notificationChannels/3658237542827819887"
+    ]
+  }
+]

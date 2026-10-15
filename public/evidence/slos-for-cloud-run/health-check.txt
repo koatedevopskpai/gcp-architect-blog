@@ -1,0 +1,2 @@
+﻿HTTP 200 - https://slo-demo-5fqef65h6q-uc.a.run.app/health (2026-10-15T11:11:32Z)
+body: ok

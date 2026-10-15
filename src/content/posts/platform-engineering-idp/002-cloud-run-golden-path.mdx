@@ -14,6 +14,7 @@ requiresOrg: false
 codeRepo: "https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/cloud-run-golden-path"
 series: "cloud-run-golden-path"
 seriesOrder: 1
+ogImage: "/og/002-cloud-run-golden-path.png"
 ---
 
 import Callout from "../../../components/Callout.astro";
@@ -186,7 +187,7 @@ resource "google_cloud_run_v2_service_iam_member" "invoker" {
 For a real service, put IAP or an ingress destination network policy in front —
 `allUsers` is for demos only.
 
-### 4. SLOs — the pattern from the Qiita reference
+### 4. SLOs — the pattern from the [Qiita reference](https://qiita.com/nakamasato/items/22b7fa3b5e1c3d06e9d4)
 
 Bind a monitoring service to Cloud Run and define availability **and** latency
 SLOs:
@@ -380,7 +381,7 @@ terraform destroy -var="project_id=gcp-architect-demo-2026"   # same-day teardow
 ## References
 
 - [Google Cloud Run overview](https://cloud.google.com/run/docs/overview/what-is-cloud-run)
-- Qiita: *GCP Cloud RunのSLO monitoringをterraformで作成* (the post that inspired this blog)
-- This blog: *Workload Identity Federation from GitHub Actions to GCP (no keys)*
+- Qiita: [*GCP Cloud RunのSLO monitoringをterraformで作成*](https://qiita.com/nakamasato/items/22b7fa3b5e1c3d06e9d4) (the post that inspired this blog)
+- This blog: [*Workload Identity Federation from GitHub Actions to GCP (no keys)*](/posts/security-iam/001-workload-identity-federation-github-to-gcp/)
 - [Cloud Run traffic management](https://cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration)
 - [Well-Architected Framework — reliability](https://cloud.google.com/architecture/framework/reliability)

@@ -1,0 +1,16 @@
+project_id = "gcp-architect-demo-2026"
+region     = "us-central1"
+
+# Set real inboxes before applying — otherwise alerts go to a black hole.
+# Verify each channel when Google emails it, or alerts won't be delivered.
+page_email   = "you@example.com"
+ticket_email = "you@example.com"
+
+# Image coordinates (defaults derive the full path from these):
+# artifact_repo = "slo-images"
+# image_tag     = "latest"
+# Override the whole path instead if you host the image elsewhere:
+# image = "us-central1-docker.pkg.dev/gcp-architect-demo-2026/slo-images/slo-demo:latest"
+
+# Optional: bake a baseline failure rate into the service (0-1).
+# baseline_fail_rate = 0.05

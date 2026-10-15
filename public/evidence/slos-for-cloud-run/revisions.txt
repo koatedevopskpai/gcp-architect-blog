@@ -1,0 +1,2 @@
+﻿   REVISION            ACTIVE  SERVICE   DEPLOYED                 DEPLOYED BY
++  slo-demo-00001-mr7  yes     slo-demo  2026-10-15 10:58:06 UTC  koatekpai@outlook.com

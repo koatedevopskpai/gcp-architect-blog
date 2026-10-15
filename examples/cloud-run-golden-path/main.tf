@@ -39,6 +39,14 @@ provider "google" {
   project = var.project_id
   region  = var.region
 
+  # Attribute API quota/usage to the target project instead of whatever the
+  # machine's ADC quota project happens to be. Without this, a user-ADC
+  # mismatch ("project ... does not match quota project ...") breaks resources
+  # such as Billing Budgets. Set the ADC quota project globally with:
+  #   gcloud auth application-default set-quota-project <project>
+  user_project_override = true
+  billing_project       = var.project_id
+
   default_labels = {
     project     = var.project_id
     environment = "demo"

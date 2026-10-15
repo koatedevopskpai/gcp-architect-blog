@@ -48,6 +48,11 @@ variable "project_roles" {
 
 provider "google" {
   project = var.project_id
+
+  # Attribute API quota/usage to the target project instead of whatever the
+  # machine's ADC quota project happens to be (user-ADC quota mismatch).
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 # ---------------------------------------------------------------------------

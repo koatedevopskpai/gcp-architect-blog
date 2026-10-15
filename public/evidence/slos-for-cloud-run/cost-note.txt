@@ -1,0 +1,3 @@
+﻿Window: Cloud Run slo-demo, scale-to-zero, client-side load burst only (no VM).
+Expected total: <$1 for the run-and-capture session.
+TODO: paste the actual billing line for the run window, then confirm teardown.

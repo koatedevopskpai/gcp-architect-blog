@@ -1,0 +1,536 @@
+---
+title: "SLOs for Cloud Run: latency, availability, multi-window alerts"
+description: "Availability and latency SLOs on Cloud Run, with three-tier multi-window burn-rate alerting that pages on real trouble and not on blips — plus an induced failure, applied live and destroyed."
+category: "sre-reliability"
+tags: ["cloud-run", "slo", "sre", "monitoring", "error-budget", "burn-rate", "terraform"]
+publishDate: 2026-10-15
+draft: false
+series: "cloud-run-golden-path"
+seriesOrder: 2
+impact: 5
+demand: 5
+confidence: 5
+effort: 3
+proofTier: 1
+requiresOrg: false
+codeRepo: "https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/slos-for-cloud-run"
+ogImage: "/og/004-slos-for-cloud-run.png"
+---
+
+import Callout from "../../../components/Callout.astro";
+
+<Callout type="warn" title="The production problem this solves">
+An uptime check only proves the service answered *something*. It stays green
+while a quarter of requests return 500 and p95 doubles — exactly the incident a
+customer emails you about. A **service-level objective** turns "is it up?" into a
+measurable contract backed by an **error budget**, and **multi-window
+multi-burn-rate** alerting tells you when you are spending that budget too fast
+— before it is gone, and without paging on every five-second blip.
+</Callout>
+
+**In one line:** bind availability and latency SLOs to Cloud Run, alert on burn
+rate across several time windows (fast burn pages, slow burn files a ticket),
+then **induce a real failure** to prove the alert fires and recovers. Applied
+live, measured, then destroyed.
+
+- **Who this is for:** SRE and platform engineers who own a service *and* its
+  pager, and are tired of static thresholds that page on noise and miss slow
+  burns.
+- **What you get:** a working `examples/slos-for-cloud-run` (a fault-injecting
+  Cloud Run service, two SLOs, three-tier burn-rate alerting, a dashboard), a
+  captured burn-and-recovery, and a teardown that keeps the bill near zero.
+- **Proof level:** **tier 1** — applied live and failed on purpose. The service
+  ran at `slo-demo-5fqef65h6q-uc.a.run.app`; a 180-second burn pushed the
+  availability burn rate past **14.4×**, the fast-burn page fired and
+  auto-resolved in **6m 45s**, then the demo was destroyed the same day.
+- **Evidence:** run artifacts at
+  [`/evidence/slos-for-cloud-run/`](/evidence/slos-for-cloud-run/) — SLO burn,
+  the alert firing and resolving, latency percentiles, cost note.
+
+This is the **operating** companion to the [Cloud Run golden path](/posts/platform-engineering-idp/002-cloud-run-golden-path/). That post
+*created* an SLO and one burn alert; this one is about *running* them: the
+burn-rate math, the full multi-window table, alert hygiene, and an incident you
+can watch fire.
+
+```text
+client / loadgen ─▶ Cloud Run (slo-demo)  /  /health  /work?fail=1  /work?latency_ms
+                         │
+                         ▼
+                 Cloud Monitoring
+                 ├── SLI: availability (non-5xx)   ─┐
+                 ├── SLI: latency (under 1s)        ├─▶ SLO + error budget
+                 │                                  ┘
+                 └── burn rate (5m/1h/6h/24h) ──▶ fast/medium burn ──▶ page
+                                              └─▶ slow burn      ──▶ ticket
+```
+
+## Why this matters in production
+
+| Daily pain | A dashboard without SLOs | SLOs + burn-rate alerting |
+|---|---|---|
+| "Is it healthy?" | A green uptime check on `/health` | Availability SLI over *real* requests |
+| "Is it fast enough?" | No number, only vibes | Latency SLI: fraction served under 1s |
+| "Are we burning budget?" | You find out when customers complain | Burn rate on page+ ticket tiers |
+| "How much outage is allowed?" | Nobody knows | Error budget derived from the SLO goal |
+| On-call | Static thresholds, alert fatigue | Fast burn pages, slow burn files a ticket |
+| Post-incident | "It felt slow" | Burn rate and timestamps on a chart |
+
+An uptime check answers one question — *did the health endpoint answer* — and
+nothing about the experience of the requests your users actually make. An SLO
+measures the thing you promised, and the error budget makes the trade-off
+between shipping and stability an explicit budget instead of an argument.
+
+## Prerequisites
+
+- A GCP project with billing and the Cloud Run + Cloud Monitoring APIs — I use
+  the shared demo project `gcp-architect-demo-2026`.
+- `gcloud` authenticated, Terraform >= 1.5, `google` provider `~> 6.0`.
+- A load generator (`hey` or `vegeta`) and **a real alert email** — an SLO alert
+  that delivers to `ops@example.com` proves nothing.
+- **A matching quota project.** With user Application Default Credentials, pin
+  the quota project to the target project (`gcloud auth application-default
+  set-quota-project gcp-architect-demo-2026`), or the provider's
+  `user_project_override` + `billing_project` will do it per-run — otherwise
+  you get *"project … does not match quota project …"* errors.
+- No VM required: the burn is driven from the client, so there is no always-on
+  compute to pay for.
+
+```bash
+gcloud config set project gcp-architect-demo-2026
+```
+
+## Steps
+
+### 1. Define the SLIs before you write the SLOs
+
+An SLI is the measurement; an SLO is the target on that measurement. Get the SLI
+wrong and the alert is theatre. Two SLIs cover most request/response services:
+
+- **Availability** — the fraction of requests that are *not* server errors
+  (non-5xx). A request that returns a 4xx because the caller sent bad input is
+  not the service failing; a 5xx is.
+- **Latency** — the fraction of requests served under a threshold. Pick the
+  threshold from the user's expectation (here, 1 second), not from the p99 you
+  happen to see.
+
+Both are measured at the revision that served the request, over a rolling
+30-day window. Two rules that keep SLIs honest: **measure what the user
+experiences** (the edge you serve from, not an internal health check), and
+**write down what you exclude** (health checks and synthetic probes, usually) so
+the number means the same thing next quarter.
+
+### 2. Bind a monitored service, then declare the SLOs
+
+Cloud Run registers as a *basic service* in Cloud Monitoring once any traffic
+arrives. Terraform binds the monitored service to the revision and attaches the
+SLOs:
+
+```hcl
+resource "google_monitoring_service" "svc" {
+  service_id   = "slo-demo-svc"
+  display_name = "SLO demo (slo-demo)"
+
+  basic_service {
+    service_type = "CLOUD_RUN"
+    service_labels = {
+      service_name = "slo-demo"
+      location     = "us-central1"
+    }
+  }
+}
+
+resource "google_monitoring_slo" "availability" {
+  service             = google_monitoring_service.svc.service_id
+  slo_id              = "slo-demo-availability"
+  goal                = 0.999                         # 99.9%
+  rolling_period_days = 30
+  basic_sli { availability { enabled = true } }
+}
+
+resource "google_monitoring_slo" "latency" {
+  service             = google_monitoring_service.svc.service_id
+  slo_id              = "slo-demo-latency"
+  goal                = 0.99                          # 99% under the threshold
+  rolling_period_days = 30
+  basic_sli { latency { threshold = "1s" } }
+}
+```
+
+<Callout type="note" title="A gotcha that costs an apply">
+The latency `threshold` is a protobuf duration and the API only accepts whole
+seconds here — `"1s"` works, `"800ms"` and `"500ms"` are rejected. Choose the
+closest whole-second threshold, or build a **custom SLI** from a log-based
+metric if you genuinely need sub-second precision (see *What this doesn't
+cover*).
+</Callout>
+
+### 3. Multi-window multi-burn-rate alerting
+
+This is the part that separates an SLO that pages *well* from one that pages
+*constantly*. Burn rate is how fast you are consuming the error budget relative
+to the SLO:
+
+```
+burn_rate = error_rate / (1 - SLO_goal)
+```
+
+For a 99.9% SLO, `1 - 0.999 = 0.001`. An error rate of 1.44% is a burn rate of
+14.4 — you are consuming budget 14.4× faster than sustainable. The whole strategy
+is choosing a **burn rate** and a **window length** so the budget consumed is
+small enough to act on but the window is long enough not to fire on a blip:
+
+```
+budget_consumed = burn_rate × window_length / total_window
+```
+
+Plug in the Google SRE workbook's three tiers against a 30-day window (720h):
+
+| Tier | Burn rate | Windows | Budget consumed | Route | Budget gone in |
+|---|---|---|---|---|---|
+| Fast | 14.4× | 5m **and** 1h | 2% | page | ~50h |
+| Medium | 6× | 30m **and** 6h | 5% | page | ~5d |
+| Slow | 1× | 6h **and** 24h | 3.3% | ticket | ~30d |
+
+<Callout type="note" title="The lookback cap: no window longer than 24h">
+The SRE workbook's slow tier uses a **3-day** long window, but
+`select_slo_burn_rate` caps its lookback at **24 hours** — `3d`, and even the
+equivalent `72h`, are rejected (*"Durations longer than 24h are not
+supported"*). So the slow tier here is **6h and 24h** (3.3% of a 30-day budget),
+the longest window Monitoring allows.
+</Callout>
+
+Sanity-check the fast tier: `14.4 × 1h / 720h = 2%` of the monthly budget
+consumed by an hour of burn — enough to wake someone, not enough to have already
+lost the month. Exhaustion time is `30d / burn_rate`: `30 / 14.4 ≈ 50h`,
+`30 / 6 = 5d`, `30 / 1 = 30d`.
+
+Each policy combines **two** windows with `AND` so a brief spike on the short
+window cannot page on its own — the short window catches sudden failure, the
+long window confirms it is sustained:
+
+```hcl
+resource "google_monitoring_alert_policy" "fast_burn" {
+  display_name          = "slo-demo availability — fast burn (14.4x)"
+  combiner              = "AND"
+  notification_channels = [google_monitoring_notification_channel.page.name]
+
+  conditions {
+    display_name = "14.4x over 5m"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", \"5m\")"
+      threshold_value = "14.4"
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+    }
+  }
+  conditions {
+    display_name = "14.4x over 1h"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", \"1h\")"
+      threshold_value = "14.4"
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+    }
+  }
+}
+```
+
+The medium (6× over 30m/6h) and slow (1× over 6h/24h) policies are the same shape
+with different thresholds, windows, and channels — the slow tier routes to a
+**ticket** channel, not the pager. Wire real channels with
+`google_monitoring_notification_channel` (email, Slack, PagerDuty) and reference
+them from `notification_channels`.
+
+One behavioural surprise worth internalising: because these tiers use **long
+windows** (6h, 24h), a short burst keeps them **OPEN** long after the burn ends.
+The fast tier resolves in minutes, but the slow tier can sit open for hours while
+the burst ages out of its 24h window — the same empty-denominator effect the next
+section covers. Expect a tidy fast-burn fire→resolve and deliberately sluggish
+medium/slow tiers.
+
+<Callout type="tip" title="Why not just alert on the error rate?">
+A raw error-rate threshold has no notion of *budget*. 1% errors is a
+catastrophe on a four-nines SLO and a rounding error on a two-nines one. Burn
+rate normalises by the SLO goal, so the same thresholds describe the same amount
+of trouble on any service.
+</Callout>
+
+### 4. Induce a real burn
+
+A configured alert is a hypothesis; a fired alert is proof. The companion
+service exposes two levers so you can fail it on purpose, per request, without
+redeploying:
+
+```
+GET /work?fail=1            -> HTTP 500     (availability burn)
+GET /work?latency_ms=1500   -> slow 200     (latency burn)
+GET /health                 -> HTTP 200     (synthetic probe)
+```
+
+Plus a `FAIL_RATE` env var for a baseline random failure rate. Drive it with the
+load script — baseline, then burn, then recovery:
+
+```bash
+cd examples/slos-for-cloud-run
+cp terraform.tfvars.example terraform.tfvars   # set page_email / ticket_email
+terraform init
+
+# 1) create the image registry, then build & push the fault-injecting image
+terraform apply -target="google_artifact_registry_repository.images"
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/gcp-architect-demo-2026/slo-images/slo-demo:latest .
+
+# 2) apply the service, SLOs, alerts, and dashboard
+terraform apply
+URL="$(terraform output -raw service_url)"
+
+./loadgen/loadgen.sh "$URL" 50 180s   # baseline -> burn -> recovery
+```
+
+Watch the sequence on the SLO burn chart and in your inbox:
+
+1. **Baseline** — burn rate near zero, SLO green.
+2. **Burn** — with enough 500s over the 5m **and** 1h windows, the fast-burn
+   (14.4×) page fires. A sustained burn also trips the medium tier.
+3. **Recovery** — stop the failing load and the alert resolves on its own; the
+   budget recovers as clean traffic accrues.
+
+<Callout type="note" title="Two timing facts to plan around">
+Metrics ingestion lags by a minute or two, and notification delivery adds a
+little more — so hold the failure state for several minutes rather than a few
+seconds, and timestamp the screenshots. A 5m-window page cannot fire on a 30s
+spike by design; that is a feature, not a bug.
+</Callout>
+
+### 5. Decide the error-budget policy *before* you spend it
+
+An SLO without a policy is a dashboard with extra steps. The policy is the
+pre-agreed answer to "the budget is gone — now what?". A workable default:
+
+- **Budget healthy** — ship freely; reliability work competes on normal priority.
+- **Budget burning fast** — the service is feature-frozen until the burn stops,
+  and reliability fixes jump the queue.
+- **Budget exhausted** — escalate: freeze releases to the service, roll back the
+  suspect change, and hold a review before resuming non-urgent work.
+
+Written down and agreed in advance, the policy replaces a 2 AM argument with a
+decision made when everyone was calm.
+
+## The empty-denominator trap: why a fresh SLO's budget reads −1,900%
+
+The live run ended with an error budget of **−1,899.704%**. That looks like a bug
+and it is not — it is the single most useful thing this demo teaches about
+rolling SLO windows.
+
+The error budget is a *ratio over the whole compliance window*, and the window
+is the 30-day compliance period, not the incident:
+
+```
+budget_remaining      = 1 − (bad_requests / allowed_bad_requests)
+allowed_bad_requests  = (1 − SLO_goal) × total_requests_in_window
+```
+
+For a 99.9% SLO, `allowed = 0.1% × total_requests`. The trap is the denominator.
+On a **fresh** SLO, essentially all of the service's lifetime traffic sits inside
+the incident window — so the 30-day denominator *is* the incident. The demo
+served ~100k requests, all within the hour, of which ~2,020 were 500s:
+
+```
+allowed = 0.001 × 100,000   = 100
+budget  = 1 − (2,020 / 100) = −1,920%   ≈ the −1,899% on the page
+```
+
+There is even a **hard floor**, independent of how you tune the demo. To make the
+fast-burn tier fire at all, the 1-hour error fraction must exceed 1.44%
+(`14.4 × 0.1%`). If the month's traffic is basically that same hour:
+
+```
+budget ≈ −(1.44% ÷ 0.1%) = −1,340%      (best case, on a brand-new SLO)
+```
+
+So you *cannot* fire a 14.4× fast burn on a brand-new SLO without the rolling
+budget going past −1,300%. It is not a misconfiguration — it is the cold-start
+reality of a windowed ratio. Let the same service accumulate a few days of
+traffic and the identical incident reads like **−20%**, because that hour is now
+a small slice of the 30-day denominator.
+
+What to actually do about it:
+
+- **In the first days of an SLO, watch the burn rate, not the raw budget
+  number.** The burn-rate alert is meaningful immediately; the budget percentage
+  only becomes meaningful once the window has history.
+- The same cold-start effect shows up as an SLI with **"No status"**, or a
+  latency SLI reading `0/0` — there simply isn't enough data yet.
+- **Don't chase a green "No status"** (or dilute the budget) with days of
+  synthetic traffic. Ship the SLO, watch the burn rate, and let the denominator
+  fill in on its own.
+
+## Alert hygiene: why SLO alerts go noisy
+
+Most "SLO alerting doesn't work" stories are one of five configuration mistakes:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Pages on every blip | Single window, no `AND` | Combine a short and a long window |
+| Fires late, or never | Non-zero `duration` on a burn condition | `duration = "0s"`; the window lives in `select_slo_burn_rate` |
+| Wrong sensitivity | Threshold not scaled to the window length | Budget a fixed percentage (2/5/10) per tier |
+| Silent burn | No traffic → empty denominator | Drive synthetic traffic |
+| Fatigue | Slow burns page like fast burns | Route 1×/24h to a ticket channel |
+| Meaningless alerts | SLO on a non-user-facing path | Measure at the edge the user hits |
+
+## Live-run gotchas (each cost me time; now documented)
+
+- **The burn needs concurrency.** The first demo served requests from a
+  single-threaded `HTTPServer`, so the `latency_ms` calls serialized and
+  starved the whole burn. Switch to `ThreadingHTTPServer` (Cloud Run sends
+  concurrent requests by design).
+- **Replacing the Cloud Run service drops its IAM policy.** `terraform apply
+  -replace=…svc` recreated the service and the public `run.invoker` binding
+  was gone — every request returned **403** (which is *not* a 5xx, so the SLO
+  stayed green and the burn silently failed). Re-assert the binding with
+  `gcloud run services add-iam-policy-binding` or `terraform apply
+  -replace=…iam_member.invoker`.
+- **A near-empty denominator causes false pages.** The medium and slow tiers
+  fired early from a handful of errors while traffic was still tiny — the
+  classic "SLOs need traffic" trap. Seed a steady baseline before trusting the
+  alert, and treat the very first minutes of a new SLO as suspect.
+- **`select_slo_burn_rate` caps the lookback at 24h** — `3d` and `72h` are
+  rejected (*"Durations longer than 24h are not supported"*).
+- **Sub-second latency thresholds are rejected** — the SLI `threshold` is a
+  protobuf duration in whole seconds (`1s`, not `500ms`).
+
+## Live-run evidence
+
+The run: ~100k requests in ~9 minutes; a 180-second burn injected **2,020 ×
+500s** and **2,027 slow (≥1s)** requests. The demo was destroyed the same day
+(`terraform destroy`). All artifacts live at
+[`/evidence/slos-for-cloud-run/`](/evidence/slos-for-cloud-run/).
+
+**1 · Availability SLO — the burn and the recovery**
+
+![Availability SLO error budget dropping sharply during the burn, then recovering](/evidence/slos-for-cloud-run/01-slo-overview.png)
+
+_The error budget falls off a cliff, then plateaus on the way back. The headline
+`−1,899.704%` is the empty-denominator trap above — not a bug._
+
+**2 · The fast-burn page firing (burn rate crosses 14.4×)**
+
+![SLO burn rate crossing the 14.4x threshold during the burn](/evidence/slos-for-cloud-run/02-alert-firing.png)
+
+**3 · …and auto-resolving**
+
+![The fast-burn incident closed after 6m45s](/evidence/slos-for-cloud-run/03-recovery.png)
+
+_`Alert closed`, duration **6m 45s** — the incident opened and resolved on its
+own as clean traffic returned; no manual acknowledgement._
+
+**4 · Latency under the burn (p50/p95/p99)**
+
+![Request latency percentiles spiking during the burn](/evidence/slos-for-cloud-run/04-latency.png)
+
+**5 · Cloud Run metrics — request rate, 5xx, instances, CPU**
+
+![Cloud Run metrics: request count, latencies, instance count, CPU](/evidence/slos-for-cloud-run/05-dashboard.png)
+
+CLI artifacts — `load-run.txt`, `service-describe.json`, `revisions.txt`,
+`alert-policies.json` — and the console links are in the same directory.
+
+## Operating it in production
+
+1. **Traffic is a precondition.** A dormant service computes SLIs against an
+   empty denominator. Keep a synthetic heartbeat (Uptime Check or Cloud
+   Scheduler hitting `/health`) so availability and latency are never undefined.
+2. **Cold starts skew latency.** Scale-to-zero cold starts inflate p95/p99 —
+   capture warm steady-state for tuning, and treat cold-start latency as its own
+   signal. If your latency SLO needs a warm floor, `min_instance_count = 1` is a
+   real (paid) decision: measure it before choosing.
+3. **One dashboard per service.** Request rate, latency, instance count, and SLO
+   burn on one screen, so the alert links to context instead of a panic.
+4. **Alerts carry a runbook link.** The alert should say what to check first
+   (the burn chart, the last deploy, the error logs) — configuration as runbook.
+5. **Review the SLO quarterly.** If you never burn the budget, the SLO is too
+   loose; if you burn it every week, it is too tight or the service is
+   under-provisioned.
+
+## SLO / Security / FinOps notes
+
+- **Reliability:** availability **and** latency SLOs, three-tier multi-window
+  burn-rate alerting, and an explicit error-budget policy — "is the service ok?"
+  becomes a chart, not a guess.
+- **Security:** the service runs as a dedicated runtime SA (no default Editor),
+  and the demo endpoint is public (`allUsers`) only because it is a throwaway
+  demo — put IAP or Cloud Armor in front of anything real.
+- **Cost:** scale-to-zero plus a client-side load burst means **no always-on
+  compute** (no VM), so a full run-and-capture cycle lands well under $1;
+  everything is FinOps-labelled and destroyed the same day.
+
+## What I'd do differently for real production
+
+- **Custom SLIs.** The built-in availability/latency SLIs are request-based and
+  whole-second; a good-but-not-perfect request still counts. A log-based or
+  metrics-based custom SLI can exclude endpoints and measure exactly what the
+  user perceives.
+- **Latency percentiles as the SLO, not a threshold.** "p99 under 500ms" is
+  often a better contract than "99% of requests under 1s"; the requested-portion
+  SLI is a simpler starting point, not the ceiling.
+- **SLOs beyond requests.** Job success and freshness SLIs (for the data
+  pipelines this blog also covers) need custom SLIs — the same burn-rate math
+  applies.
+- **Ticket-to-issue automation.** Route the slow-burn channel into your tracker
+  so a ticket-tier alert becomes a real work item with an owner.
+- **Multi-service SLOs.** A user journey spans services; a single-service SLO
+  can be green while the journey is broken.
+
+## What this doesn't cover
+
+- **Custom SLIs** (log-based metrics, distribution-cut SLIs) — the next depth
+  step after this pattern.
+- **GKE** and multi-service dependency SLOs.
+- **Incident response** — paging policy, escalation, and postmortems are their
+  own discipline; this post gets the signal right, not the whole on-call
+  process.
+
+## Reproduce
+
+```bash
+cd examples/slos-for-cloud-run
+cp terraform.tfvars.example terraform.tfvars   # set page_email / ticket_email
+terraform init
+
+# 1) create the image registry, then build & push the fault-injecting image
+terraform apply -target="google_artifact_registry_repository.images"
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/gcp-architect-demo-2026/slo-images/slo-demo:latest .
+
+# 2) apply the service, SLOs, alerts, and dashboard
+terraform apply
+
+# 3) burn and capture (writes CLI evidence; screenshots listed in SCREENSHOTS.md)
+./capture-evidence.sh
+
+terraform destroy   # same-day teardown
+```
+
+Full code:
+[`examples/slos-for-cloud-run`](https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/slos-for-cloud-run).
+
+## Where this fits: Google Cloud Well-Architected Framework
+
+| Pillar | How this post applies it |
+|---|---|
+| Reliability | Availability + latency SLOs, three-tier multi-window burn-rate alerting |
+| Operational Excellence | Error-budget policy, alerts with runbooks, Terraform as source of truth |
+| Cost Optimization | Scale-to-zero, client-side burn, no always-on compute, same-day teardown |
+| Security | Dedicated runtime SA, no keys; public ingress only for the throwaway demo |
+
+## References and further reading
+
+- [Google SRE Workbook — Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)
+  (the multi-window multi-burn-rate table)
+- [Cloud Monitoring — SLO monitoring](https://cloud.google.com/stackdriver/docs/solutions/slo-monitoring)
+- [`select_slo_burn_rate`](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/query)
+- [Cloud Run — service-level objectives](https://cloud.google.com/run/docs/monitoring)
+- This blog: [*Cloud Run golden path: Terraform + CI/CD + SLOs*](/posts/platform-engineering-idp/002-cloud-run-golden-path/) (the deployment
+  this post operates on)
+- Qiita: [*GCP Cloud RunのSLO monitoringをterraformで作成*](https://qiita.com/nakamasato/items/22b7fa3b5e1c3d06e9d4) (the post that inspired this blog)
+- [Well-Architected Framework — reliability](https://cloud.google.com/architecture/framework/reliability)

@@ -1,0 +1,122 @@
+﻿{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Service",
+  "metadata": {
+    "annotations": {
+      "run.googleapis.com/ingress": "all",
+      "run.googleapis.com/ingress-status": "all",
+      "run.googleapis.com/maxScale": "12",
+      "run.googleapis.com/operation-id": "0fb05cf3-4919-4009-a67d-3c855e1cdd66",
+      "run.googleapis.com/urls": "[\"https://slo-demo-558401798508.us-central1.run.app\",\"https://slo-demo-5fqef65h6q-uc.a.run.app\"]",
+      "serving.knative.dev/creator": "koatekpai@outlook.com",
+      "serving.knative.dev/lastModifier": "koatekpai@outlook.com"
+    },
+    "creationTimestamp": "2026-10-15T10:58:05.953321Z",
+    "generation": 1,
+    "labels": {
+      "cloud.googleapis.com/location": "us-central1",
+      "cost_center": "cc-gcp-platform",
+      "environment": "demo",
+      "goog-terraform-provisioned": "true",
+      "managed_by": "terraform",
+      "project": "gcp-architect-demo-2026",
+      "workload": "blog4-slos-for-cloud-run"
+    },
+    "name": "slo-demo",
+    "namespace": "558401798508",
+    "resourceVersion": "AAZd3uxwAtA",
+    "selfLink": "/apis/serving.knative.dev/v1/namespaces/558401798508/services/slo-demo",
+    "uid": "38d966cd-7835-4174-8d1c-3dff0356f0f9"
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "annotations": {
+          "autoscaling.knative.dev/maxScale": "5",
+          "autoscaling.knative.dev/minScale": "0",
+          "run.googleapis.com/cpu-throttling": "false",
+          "run.googleapis.com/execution-environment": "gen2",
+          "run.googleapis.com/sessionAffinity": "false"
+        },
+        "labels": {
+          "run.googleapis.com/startupProbeType": "Custom"
+        }
+      },
+      "spec": {
+        "containerConcurrency": 80,
+        "containers": [
+          {
+            "env": [
+              {
+                "name": "FAIL_RATE",
+                "value": "0"
+              }
+            ],
+            "image": "us-central1-docker.pkg.dev/gcp-architect-demo-2026/slo-images/slo-demo:latest",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http1"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "1",
+                "memory": "512Mi"
+              }
+            },
+            "startupProbe": {
+              "failureThreshold": 3,
+              "periodSeconds": 5,
+              "tcpSocket": {
+                "port": 8080
+              },
+              "timeoutSeconds": 5
+            }
+          }
+        ],
+        "serviceAccountName": "slo-demo-sa@gcp-architect-demo-2026.iam.gserviceaccount.com",
+        "timeoutSeconds": 30
+      }
+    },
+    "traffic": [
+      {
+        "latestRevision": true,
+        "percent": 100
+      }
+    ]
+  },
+  "status": {
+    "address": {
+      "url": "https://slo-demo-5fqef65h6q-uc.a.run.app"
+    },
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-15T10:58:11.150544Z",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-10-15T10:58:08.148747Z",
+        "status": "True",
+        "type": "ConfigurationsReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-15T10:58:11.103232Z",
+        "status": "True",
+        "type": "RoutesReady"
+      }
+    ],
+    "latestCreatedRevisionName": "slo-demo-00001-mr7",
+    "latestReadyRevisionName": "slo-demo-00001-mr7",
+    "observedGeneration": 1,
+    "traffic": [
+      {
+        "latestRevision": true,
+        "percent": 100,
+        "revisionName": "slo-demo-00001-mr7"
+      }
+    ],
+    "url": "https://slo-demo-5fqef65h6q-uc.a.run.app"
+  }
+}

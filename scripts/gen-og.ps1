@@ -15,10 +15,10 @@ function New-OgImage {
         [string]$Footer,
         [string]$BgHex,
         [string]$AccentHex,
-        [string]$TextHex
+        [string]$TextHex,
+        [int]$W = 1200,
+        [int]$H = 630
     )
-    $W = 1200
-    $H = 630
     $bmp = New-Object System.Drawing.Bitmap($W, $H)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
@@ -29,7 +29,7 @@ function New-OgImage {
     $accent = [System.Drawing.ColorTranslator]::FromHtml($AccentHex)
     $g.FillRectangle((New-Object System.Drawing.SolidBrush($accent)), 0, 0, 14, $H)
     $ruleBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(60, 255, 255, 255))
-    $g.FillRectangle($ruleBrush, 56, 528, ($W - 112), 2)
+    $g.FillRectangle($ruleBrush, 56, ($H - 102), ($W - 112), 2)
 
     # eyebrow
     $eyebrowBrush = New-Object System.Drawing.SolidBrush($accent)
@@ -39,7 +39,7 @@ function New-OgImage {
     # title (wraps inside the rectangle)
     $textBrush = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($TextHex))
     $titleFont = New-Object System.Drawing.Font("Segoe UI", 46, [System.Drawing.FontStyle]::Bold)
-    $titleRect = New-Object System.Drawing.RectangleF(56, 150, ($W - 112), 360)
+    $titleRect = New-Object System.Drawing.RectangleF(56, 150, ($W - 112), ($H - 150 - 110))
     $fmt = New-Object System.Drawing.StringFormat
     $fmt.Alignment = [System.Drawing.StringAlignment]::Near
     $fmt.LineAlignment = [System.Drawing.StringAlignment]::Near
@@ -48,7 +48,7 @@ function New-OgImage {
     # footer
     $footerBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 255, 255, 255))
     $footerFont = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
-    $g.DrawString($Footer, $footerFont, $footerBrush, 56, 552)
+    $g.DrawString($Footer, $footerFont, $footerBrush, 56, ($H - 78))
 
     $dir = Split-Path $OutFile -Parent
     if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
@@ -88,3 +88,50 @@ New-OgImage `
     -BgHex "#1E293B" `
     -AccentHex "#38BDF8" `
     -TextHex "#F0F9FF"
+
+# --- SLOs for Cloud Run (Blog 4) ---
+$sloFooter = "KOATEKPAI.DEV  /  GITHUB.COM/KOATEDEVOPSKPAI/GCP-ARCHITECT-BLOG"
+$sloTitle = "SLOs for Cloud Run: when a fresh error budget reads -1,900%"
+
+# 1200x630 — blog / OpenGraph / social
+New-OgImage `
+    -OutFile (Join-Path $ogDir "004-slos-for-cloud-run.png") `
+    -Eyebrow "GCP SRE - SERVICE LEVEL OBJECTIVES" `
+    -Title $sloTitle `
+    -Footer $sloFooter `
+    -BgHex "#0F172A" `
+    -AccentHex "#38BDF8" `
+    -TextHex "#F8FAFC"
+
+# 1200x504 — Dev.to / Hashnode cover (2.38:1, no cropping)
+New-OgImage `
+    -OutFile (Join-Path $ogDir "004-slos-for-cloud-run-devto.png") `
+    -Eyebrow "GCP SRE - SERVICE LEVEL OBJECTIVES" `
+    -Title $sloTitle `
+    -Footer $sloFooter `
+    -BgHex "#0F172A" `
+    -AccentHex "#38BDF8" `
+    -TextHex "#F8FAFC" `
+    -W 1200 `
+    -H 504
+
+# --- Cloud Run golden path (Blog 2) ---
+New-OgImage `
+    -OutFile (Join-Path $ogDir "002-cloud-run-golden-path.png") `
+    -Eyebrow "GCP PLATFORM ENGINEERING - CLOUD RUN" `
+    -Title "Cloud Run golden path: Terraform + CI/CD + SLOs" `
+    -Footer $sloFooter `
+    -BgHex "#0B1220" `
+    -AccentHex "#60A5FA" `
+    -TextHex "#EFF6FF"
+
+New-OgImage `
+    -OutFile (Join-Path $ogDir "002-cloud-run-golden-path-devto.png") `
+    -Eyebrow "GCP PLATFORM ENGINEERING - CLOUD RUN" `
+    -Title "Cloud Run golden path: Terraform + CI/CD + SLOs" `
+    -Footer $sloFooter `
+    -BgHex "#0B1220" `
+    -AccentHex "#60A5FA" `
+    -TextHex "#EFF6FF" `
+    -W 1200 `
+    -H 504

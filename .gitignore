@@ -41,3 +41,6 @@ docs/career/
 # Distribution drafts / personal assets — local only, never published
 docs/distribution/
 
+# Personal metrics / ops notes — local only, never published
+docs/metrics.md
+

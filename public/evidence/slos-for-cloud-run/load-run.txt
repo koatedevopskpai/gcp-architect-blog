@@ -1,0 +1,11 @@
+﻿# SLO burn run - 2026-10-15T11:11:39Z
+# service=slo-demo region=us-central1 concurrency=20 phase=180s
+# NOTE: paste the fast-burn alert firing + resolve timestamps (from the
+#       inbox / alert incidents) below the summary when captured.
+baseline  ok=24877 fail(5xx)=0 other(4xx)=0 slow(>=1s)=0 total=24877 avg=145ms [2026-10-15T11:14:39Z]
+burn      ok=2027 fail(5xx)=2020 other(4xx)=0 slow(>=1s)=2027 total=4047 avg=894ms [2026-10-15T11:17:40Z]
+recovery  ok=24826 fail(5xx)=0 other(4xx)=0 slow(>=1s)=6 total=24826 avg=145ms [2026-10-15T11:20:41Z]
+
+# captured 2026-10-15T11:20:41Z
+# SLO burn at end of recovery window:
+#   1h burn = <fill from console>   (expect near 0 after recovery)

@@ -35,6 +35,12 @@ variable "alert_email" {
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # Attribute API quota/usage to the target project instead of whatever the
+  # machine's ADC quota project happens to be (user-ADC quota mismatch).
+  user_project_override = true
+  billing_project       = var.project_id
+
   default_labels = {
     project     = var.project_id
     environment = "demo"
