@@ -10,7 +10,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: "Koate Kpai — GCP Architecture",
     description:
-      "Production-grade GCP architecture and platform engineering patterns, backed by working code.",
+      "Reference GCP architecture and platform engineering patterns, backed by working code.",
     site: context.site ?? "https://gcp-architect-blog.web.app",
     items: posts.map((post) => ({
       title: post.data.title,

@@ -1,6 +1,6 @@
 # gcp-architect-blog
 
-Production-grade GCP architecture and platform engineering blog — deep,
+Reference GCP architecture and platform engineering blog — deep,
 code-first posts backed by working Terraform, real command output, metrics, and
 cost. Built with [Astro](https://astro.build), deployed to Firebase Hosting.
 
@@ -99,3 +99,10 @@ firebase deploy --only hosting
 ## Licence
 
 This project is licensed under the [MIT License](LICENSE). © 2026 Koate Kpai.
+
+
+## Claim review — 18 October 2026
+
+See [verification and limits](evidence/W5-09.md) for the source revision, claim
+classification and observed CI status. Wording corrections do not establish a
+new deployment, passing test suite or production operation.
