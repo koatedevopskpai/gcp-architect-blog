@@ -11,6 +11,11 @@ By **Koate Kpai**.
 Every post ships evidence: a companion Terraform example under `examples/<slug>/`
 and captured proof under `public/evidence/<slug>/`. No slideware.
 
+
+New posts include a readable result or architecture visual near the opening,
+with a caption, alt text and a shareable LinkedIn version. Follow the
+[post visual standard](AGENTS.md#post-visuals).
+
 ## Stack
 
 - **Astro 5** (static output, MDX, Shiki highlighting, Mermaid diagrams

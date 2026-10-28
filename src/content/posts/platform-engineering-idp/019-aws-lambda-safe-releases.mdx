@@ -29,6 +29,24 @@ This post explains the configuration, the implementation mistake that mattered,
 and what the saved records establish. The experiment used synthetic traffic in
 AWS `eu-west-2` on 20 October 2026.
 
+<figure style={{ margin: "1.5rem 0" }}>
+  <a href="/images/aws-lambda-safe-releases/rollback-summary.png">
+    <img
+      src="/images/aws-lambda-safe-releases/rollback-summary.png"
+      width="1200"
+      height="1200"
+      alt="Lambda release experiment: configured 10% canary, CloudWatch detection and CodeDeploy rollback. Rollback completed 2m43s after deployment creation; 3,601 requests and a clean post-rollback Terraform plan."
+      decoding="async"
+      style={{ display: "block", width: "100%", height: "auto" }}
+    />
+  </a>
+  <figcaption style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginTop: "0.5rem" }}>
+    Illustrated summary of the synthetic AWS lab. The 2m43s measures deployment
+    creation to rollback completion, not customer recovery time. Select the image
+    to view it at full size.
+  </figcaption>
+</figure>
+
 import AwsLambdaReleaseDiagram from "../../../components/AwsLambdaReleaseDiagram.astro";
 
 ## The system behind the test
