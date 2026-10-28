@@ -1,0 +1,88 @@
+{
+  "prepared": "2026-10-22",
+  "evidence_runs_are_distinct": true,
+  "files": [
+    {
+      "file": "20261020-0251/baseline-load.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "9165fe9a4c60e82f60ef0831c720d779fa783242f5a68a8beba59118d40b8b89",
+      "publication_sha256": "00e3d325f7339536cd6d82dd0efb3c13b0d5e515d97ef55d7d1f3ac632b1b382",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/load.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "9a4b9b66d090f9558b9093701ec5c088f04588fb622d30907c24841cf7487e9d",
+      "publication_sha256": "b2cabc10f6101af3856959bd7c622eed08cdf55fca6cb63a1be3b1997f39c148",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/deployment.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "0215b9eca73006a13c48dd6e42acb3d30a50ae2e1ebd5cef984a7106edf88dcb",
+      "publication_sha256": "27022491fb86f0abda0bf660fcde6cdfc9931b6ed59ec88d51b4c4d04c1b72d6",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/lambda-alias.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "0f980cb9bb9f8b9fb2c8d37c624866d3b7e918c3a61b4ab1e16f79a8871db4f3",
+      "publication_sha256": "81c2a829a9f07527816fa93eb250bf1b2e3c218408510967b4351b888773c5d0",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/alarms.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "722b0118841c6d93ec4419c8f864a43245ac36e34dae0600013354725b007cea",
+      "publication_sha256": "7169ec9c886dba665e2b43ab4eecf820e9667dbc648255bf6a1d5ac24acbdf91",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/codedeploy-group.json",
+      "source_run": "20261020-0251",
+      "source_sha256": "d1d8dfcbe70387057870043324c52925d5e9cc6883bdb21e4ad6dd31649c958f",
+      "publication_sha256": "00cd5ee07732c08942177e9cdbc7f18d310488810582f76e7cab15a8f8084289",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/post-rollback-plan.txt",
+      "source_run": "20261020-0251",
+      "source_sha256": "94def26e5503ce23d2a3583e181a1432c34a161a5538e72280db0b1e21b97d15",
+      "publication_sha256": "f003743c1ac6c4ce7312583f9256e30743d1e43682b60882f727ef30ffb9147f",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-0251/run-meta.txt",
+      "source_run": "20261020-0251",
+      "source_sha256": "109c10fe8ec4d7db3d50fbbbabb26b9ffd21223bf2943cd330cbae4b476c3607",
+      "publication_sha256": "984436bf318eb9d4a725a5afdedef0c45ee19775ebb3af7c4f4a86432204944f",
+      "treatment": "Text: account IDs and emails redacted; source unchanged"
+    },
+    {
+      "file": "20261020-030749-native-capture/02-healthy-alias.png",
+      "source_run": "20261020-030749-native-capture",
+      "publication_sha256": "695cc2da4c71da8cd83a973eb1fc5f95b168f50272ac7224ed2ee70ba6d0b81f",
+      "treatment": "Actual browser screenshot, cropped at capture to omit account header; overview collapsed through console UI",
+      "limitation": "Separate run, versions 5/6/7. Run timed out at alarm checkpoint and was destroyed. No complete rollback screenshot set."
+    },
+    {
+      "file": "20261020-030749-native-capture/03-canary-alias.png",
+      "source_run": "20261020-030749-native-capture",
+      "publication_sha256": "190efef38348e26edb449d106ed62d1bb57dc2c76093d429455510775c4986fa",
+      "treatment": "Actual browser screenshot, cropped at capture to omit account header; overview collapsed through console UI",
+      "limitation": "Separate run, versions 5/6/7. Run timed out at alarm checkpoint and was destroyed. No complete rollback screenshot set."
+    },
+    {
+      "file": "cleanup-20261022.json",
+      "source_run": "20261022-publication-check",
+      "publication_sha256": "acffdb150cd673da482b26883b573975e5ea29f7b68be97719b3acf379a40324",
+      "treatment": "Fresh read-only cleanup verification"
+    },
+    {
+      "file": "index.html",
+      "source_run": "publication-index",
+      "publication_sha256": "61b8c632e0b49fac9fea45ead4fb17c56c5a4f76488daa467e09cc73230040f8",
+      "treatment": "Evidence catalogue with provenance limitations"
+    }
+  ]
+}

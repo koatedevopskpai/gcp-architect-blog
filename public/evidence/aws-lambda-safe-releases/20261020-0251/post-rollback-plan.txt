@@ -1,0 +1,42 @@
+data.aws_region.current: Reading...
+data.aws_iam_policy_document.lambda_assume: Reading...
+data.aws_caller_identity.current: Reading...
+data.aws_iam_policy_document.deploy_assume: Reading...
+aws_codedeploy_app.app: Refreshing state... [id=1d48e6d8-6160-42b7-9bef-e6c316cc487f:aws-lambda-safe-releases]
+aws_cloudwatch_log_group.lambda: Refreshing state... [id=/aws/lambda/aws-lambda-safe-releases]
+aws_apigatewayv2_api.api: Refreshing state... [id=hdgaiur5v8]
+aws_iam_role.codedeploy: Refreshing state... [id=aws-lambda-safe-releases-codedeploy]
+data.aws_region.current: Read complete after 0s [id=eu-west-2]
+aws_budgets_budget.demo: Refreshing state... [id=REDACTED_ACCOUNT:aws-lambda-safe-releases-demo]
+data.aws_iam_policy_document.lambda_assume: Read complete after 0s [id=2690255455]
+data.aws_iam_policy_document.deploy_assume: Read complete after 0s [id=3992905026]
+aws_iam_role.deploy: Refreshing state... [id=aws-lambda-safe-releases-github-deploy]
+data.aws_caller_identity.current: Read complete after 0s [id=REDACTED_ACCOUNT]
+aws_s3_bucket.artifacts: Refreshing state... [id=aws-lambda-safe-releases-demo-REDACTED_ACCOUNT]
+aws_iam_policy.lambda_boundary: Refreshing state... [id=arn:aws:iam::REDACTED_ACCOUNT:policy/aws-lambda-safe-releases-boundary]
+aws_apigatewayv2_stage.default: Refreshing state... [id=$default]
+aws_s3_bucket_public_access_block.artifacts: Refreshing state... [id=aws-lambda-safe-releases-demo-REDACTED_ACCOUNT]
+aws_s3_bucket_versioning.artifacts: Refreshing state... [id=aws-lambda-safe-releases-demo-REDACTED_ACCOUNT]
+aws_s3_bucket_server_side_encryption_configuration.artifacts: Refreshing state... [id=aws-lambda-safe-releases-demo-REDACTED_ACCOUNT]
+data.aws_iam_policy_document.codedeploy_artifacts: Reading...
+aws_s3_bucket_lifecycle_configuration.artifacts: Refreshing state... [id=aws-lambda-safe-releases-demo-REDACTED_ACCOUNT]
+data.aws_iam_policy_document.codedeploy_artifacts: Read complete after 0s [id=4067534657]
+aws_iam_role.lambda: Refreshing state... [id=aws-lambda-safe-releases-runtime]
+aws_iam_role_policy_attachment.codedeploy: Refreshing state... [id=aws-lambda-safe-releases-codedeploy-20261020015124763900000001]
+aws_iam_role_policy.codedeploy_artifacts: Refreshing state... [id=aws-lambda-safe-releases-codedeploy:aws-lambda-safe-releases-codedeploy-artifacts]
+aws_iam_role_policy.lambda_logs: Refreshing state... [id=aws-lambda-safe-releases-runtime:aws-lambda-safe-releases-logs]
+aws_lambda_function.app: Refreshing state... [id=aws-lambda-safe-releases]
+aws_lambda_alias.live: Refreshing state... [id=arn:aws:lambda:eu-west-2:REDACTED_ACCOUNT:function:aws-lambda-safe-releases:live]
+aws_cloudwatch_metric_alarm.errors: Refreshing state... [id=aws-lambda-safe-releases-live-errors]
+aws_lambda_permission.apigw: Refreshing state... [id=AllowAPIGatewayInvoke]
+aws_apigatewayv2_integration.lambda: Refreshing state... [id=3mdr6be]
+aws_apigatewayv2_route.get_root: Refreshing state... [id=tiidmge]
+aws_codedeploy_deployment_group.app: Refreshing state... [id=ad827d14-81f2-46ff-85d7-89c030b8924e]
+data.aws_iam_policy_document.deploy: Reading...
+data.aws_iam_policy_document.deploy: Read complete after 0s [id=2970109977]
+aws_iam_role_policy.deploy: Refreshing state... [id=aws-lambda-safe-releases-github-deploy:aws-lambda-safe-releases-deploy]
+
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.

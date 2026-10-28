@@ -1,0 +1,4 @@
+build/
+evidence/raw/
+__pycache__/
+*.pyc

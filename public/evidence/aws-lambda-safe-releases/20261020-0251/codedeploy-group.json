@@ -1,0 +1,54 @@
+{
+    "deploymentGroupInfo": {
+        "applicationName": "aws-lambda-safe-releases",
+        "deploymentGroupId": "ad827d14-81f2-46ff-85d7-89c030b8924e",
+        "deploymentGroupName": "aws-lambda-safe-releases-canary",
+        "deploymentConfigName": "CodeDeployDefault.LambdaCanary10Percent10Minutes",
+        "ec2TagFilters": [],
+        "onPremisesInstanceTagFilters": [],
+        "autoScalingGroups": [],
+        "serviceRoleArn": "arn:aws:iam::REDACTED_ACCOUNT:role/aws-lambda-safe-releases-codedeploy",
+        "targetRevision": {
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {
+                "sha256": "f699d9595e44c1a8c8eeb2e88aafc38a462bec0ae46e1cc01693cfc689548426"
+            }
+        },
+        "triggerConfigurations": [],
+        "alarmConfiguration": {
+            "enabled": true,
+            "ignorePollAlarmFailure": false,
+            "alarms": [
+                {
+                    "name": "aws-lambda-safe-releases-live-errors"
+                }
+            ]
+        },
+        "autoRollbackConfiguration": {
+            "enabled": true,
+            "events": [
+                "DEPLOYMENT_STOP_ON_ALARM",
+                "DEPLOYMENT_FAILURE"
+            ]
+        },
+        "deploymentStyle": {
+            "deploymentType": "BLUE_GREEN",
+            "deploymentOption": "WITH_TRAFFIC_CONTROL"
+        },
+        "outdatedInstancesStrategy": "UPDATE",
+        "lastSuccessfulDeployment": {
+            "deploymentId": "d-YGITAAD6K",
+            "status": "Succeeded",
+            "endTime": "2026-10-20T03:11:59.561000+01:00",
+            "createTime": "2026-10-20T03:11:58.057000+01:00"
+        },
+        "lastAttemptedDeployment": {
+            "deploymentId": "d-YGITAAD6K",
+            "status": "Succeeded",
+            "endTime": "2026-10-20T03:11:59.561000+01:00",
+            "createTime": "2026-10-20T03:11:58.057000+01:00"
+        },
+        "computePlatform": "Lambda",
+        "terminationHookEnabled": false
+    }
+}

@@ -1,0 +1,2 @@
+# Keep publication hashes stable across Windows checkouts and Linux deployments.
+* -text

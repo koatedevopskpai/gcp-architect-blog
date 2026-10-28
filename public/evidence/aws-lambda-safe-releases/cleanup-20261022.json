@@ -1,0 +1,131 @@
+{
+  "checked_utc": "2026-10-22T11:15:25.287664+00:00",
+  "region": "eu-west-2",
+  "retained_exception": "Tag-scoped budget intentionally retained; verified separately",
+  "checks": {
+    "Lambda functions": {
+      "command": [
+        "aws",
+        "lambda",
+        "list-functions",
+        "--region",
+        "eu-west-2",
+        "--query",
+        "Functions[?starts_with(FunctionName, 'aws-lambda-safe-releases')].FunctionName"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "CodeDeploy applications": {
+      "command": [
+        "aws",
+        "deploy",
+        "list-applications",
+        "--region",
+        "eu-west-2",
+        "--query",
+        "applications[?starts_with(@, 'aws-lambda-safe-releases')]"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "CloudWatch alarms": {
+      "command": [
+        "aws",
+        "cloudwatch",
+        "describe-alarms",
+        "--region",
+        "eu-west-2",
+        "--query",
+        "MetricAlarms[?starts_with(AlarmName, 'aws-lambda-safe-releases')].AlarmName"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "API Gateway APIs": {
+      "command": [
+        "aws",
+        "apigatewayv2",
+        "get-apis",
+        "--region",
+        "eu-west-2",
+        "--query",
+        "Items[?starts_with(Name, 'aws-lambda-safe-releases')].Name"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "IAM policies": {
+      "command": [
+        "aws",
+        "iam",
+        "list-policies",
+        "--scope",
+        "Local",
+        "--query",
+        "Policies[?starts_with(PolicyName, 'aws-lambda-safe-releases')].PolicyName"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "Log groups": {
+      "command": [
+        "aws",
+        "logs",
+        "describe-log-groups",
+        "--region",
+        "eu-west-2",
+        "--log-group-name-prefix",
+        "/aws/lambda/aws-lambda-safe-releases",
+        "--query",
+        "logGroups[].logGroupName"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "S3 buckets": {
+      "command": [
+        "aws",
+        "s3api",
+        "list-buckets",
+        "--query",
+        "Buckets[?starts_with(Name, 'aws-lambda-safe-releases')].Name"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    },
+    "IAM roles": {
+      "command": [
+        "aws",
+        "iam",
+        "list-roles",
+        "--query",
+        "Roles[?starts_with(RoleName, 'aws-lambda-safe-releases')].RoleName"
+      ],
+      "exit_code": 0,
+      "remaining": []
+    }
+  },
+  "all_clear": true,
+  "tag_sweep": {
+    "command": [
+      "aws",
+      "resourcegroupstaggingapi",
+      "get-resources",
+      "--tag-filters",
+      "Key=Project,Values=aws-lambda-safe-releases",
+      "--region",
+      "eu-west-2",
+      "--query",
+      "ResourceTagMappingList[].ResourceARN",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "remaining": [],
+    "exit_code": 0
+  },
+  "terraform_state_resources": [
+    "aws_budgets_budget.demo"
+  ]
+}

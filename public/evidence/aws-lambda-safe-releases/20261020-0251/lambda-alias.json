@@ -1,0 +1,7 @@
+{
+    "AliasArn": "arn:aws:lambda:eu-west-2:REDACTED_ACCOUNT:function:aws-lambda-safe-releases:live",
+    "Name": "live",
+    "FunctionVersion": "2",
+    "Description": "Stable alias used by CodeDeploy for traffic shifting",
+    "RevisionId": "27d6458e-9a84-4b3f-bc2a-0c4b924f381e"
+}

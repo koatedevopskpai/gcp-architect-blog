@@ -1,0 +1,17 @@
+{
+  "url": "https://hdgaiur5v8.execute-api.eu-west-2.amazonaws.com/",
+  "started_utc": "2026-10-20T02:10:02Z",
+  "elapsed_seconds": 360.067,
+  "configured_rate_per_second": 10.0,
+  "requests_sent": 3601,
+  "status_counts": {
+    "200": 3479,
+    "429": 2,
+    "500": 120
+  },
+  "version_counts": {
+    "candidate-healthy": 3479,
+    "unknown": 122
+  },
+  "errors": 120
+}

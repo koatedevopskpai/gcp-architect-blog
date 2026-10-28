@@ -1,0 +1,7 @@
+run_id=20261020-0251
+timestamp_utc=2026-10-20T02:17:22Z
+region=eu-west-2
+commit=7a8cf4a237969a5c98304364295d93591354c9a6
+function_name=aws-lambda-safe-releases
+alias_name=live
+deployment_id=d-9PAMKTD6K
