@@ -34,3 +34,21 @@ copy deliverables back here before reporting completion.
 - LinkedIn drafts and editable share graphics: `docs/distribution/<post-slug>/`.
 - Preserve differing local work; archive a published snapshot rather than
   overwriting it merely to match another checkout.
+
+## Post tooling
+
+Every post is a package. These checks apply to all posts, existing and future.
+
+- Before committing, run `npm run check:posts`. It validates frontmatter, asset
+  references, internal routes, anchors and evidence manifests for every post.
+- For a single post, run `npm run check:post -- <slug>`. After `npm run build`
+  (with the post not draft), add `--render` to check anchors, images and
+  horizontal overflow at 1440px and 390px, and to capture review screenshots.
+- Evidence-bearing posts must pass `python scripts/evidence.py verify --slug <slug>`.
+- Build or refresh evidence with `python scripts/evidence.py
+  bundle|transcript|manifest|finalize`, with run metadata in
+  `content-ops/evidence/<slug>.json`.
+- Do not edit or add files under `public/evidence/<slug>/` after publishing; the
+  manifest hashes the exact bytes. `.gitattributes` prevents line-ending
+  conversion.
+- Full workflow: `docs/post-authoring.md`.

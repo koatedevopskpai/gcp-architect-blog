@@ -1,0 +1,31 @@
+{
+  "slug": "why-an-ai-task-can-run-twice",
+  "run_id": "20261025-local-publication",
+  "recorded_at_utc": "2026-10-25T13:31:34.407629+00:00",
+  "source_snapshot": "23 October 2026 reference bundle; original MANIFEST.sha256 verified, 76 files",
+  "source_commit": null,
+  "source_commit_note": "Source was delivered as an archive; SHA-256 identifies the snapshot. No commit is asserted.",
+  "skips": [
+    "Azurite visibility/receipt integration: emulator not configured",
+    "Azurite visibility-expiry integration: emulator not configured",
+    "POSIX SIGTERM process test: Windows"
+  ],
+  "claims": {
+    "post_commit_ack_failure_one_model_call": "tests/test_recovery.py::test_post_commit_ack_failure_skips_second_ai",
+    "pre_commit_failure_two_model_calls": "tests/test_recovery.py::test_provider_response_before_commit_can_repeat",
+    "stale_owner_cannot_complete": "tests/test_boundaries.py::test_expired_owner_cannot_complete_over_new_owner",
+    "outbox_atomicity": "tests/test_boundaries.py::test_task_and_initial_intent_roll_back_together"
+  },
+  "limits": [
+    "No Azure deployment",
+    "No paid model inference or billing measurement",
+    "Recovery tests use a queue policy double and explicit claim expiry",
+    "Known broader reference defects listed in PUBLICATION-NOTES.md inside ZIP"
+  ],
+  "result": {
+    "passed": 47,
+    "skipped": 3,
+    "failed": 0,
+    "errors": 0
+  }
+}

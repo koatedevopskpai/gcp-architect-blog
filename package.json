@@ -9,6 +9,9 @@
     "build": "astro build && node scripts/render-mermaid-html.mjs",
     "preview": "astro preview",
     "check": "astro check",
+    "check:posts": "node scripts/check-posts.mjs",
+    "check:post": "node scripts/check-posts.mjs --slug",
+    "evidence": "python scripts/evidence.py",
     "new:post": "node scripts/new-post.mjs",
     "score": "node scripts/score.mjs"
   },

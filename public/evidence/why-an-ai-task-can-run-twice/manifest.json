@@ -45,8 +45,8 @@
     },
     {
       "path": "test-results.txt",
-      "sha256": "23cf3b95ca81b8be39702765cd43b98c8cc0e33264e80ce32516494cd90f67db",
-      "bytes": 5153
+      "sha256": "afe76d3461d1b74584d1312ebdd3a25442dc693c12faebcd03008b8f0784e45e",
+      "bytes": 5085
     },
     {
       "path": "tests/fakes.py",

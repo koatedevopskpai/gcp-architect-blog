@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Check posts
+        run: npm run check:posts
+
       # The build runs scripts/render-mermaid-html.mjs, which launches headless
       # Chromium via Playwright. `npm ci` installs the package but not the browser
       # binary, so it must be installed explicitly or the build fails at launch.

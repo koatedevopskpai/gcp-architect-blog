@@ -1,13 +1,34 @@
 # Handover — Azure AI Ops post 1: "Why an AI Task Can Run Twice"
 
-Last updated: 2026-10-28
-Status: **Prepared and verified; held for user review. `draft: true`; not committed; not deployed.**
+Last updated: 2026-10-29
+Status: **Committed on `main`; `draft: true`; not deployed.**
 Series: `azure-ai-ops` (post 1 of 3), category `sre-reliability`, cloud `azure`, proof tier 2
 Article: `src/content/posts/sre-reliability/005-why-an-ai-task-can-run-twice.mdx`
 Evidence: `public/evidence/why-an-ai-task-can-run-twice/`
 Backlog topic: `022` (note: file prefix `005` is the series position, not the topic id)
 
 This note lets a fresh Codex session continue without reconstructing context.
+
+## 29 October 2026 — repository sync and tooling update
+
+Supersedes the "untracked / not committed" statements below.
+
+- The repository was synced to `origin/main` (`1e29591`) and the Azure package was
+  committed in `8bdd1c3`. The working tree is clean.
+- Authoring tooling now lives in the repository and applies to every post:
+  `scripts/check-posts.mjs`, `scripts/evidence.py`, `docs/post-authoring.md`.
+- `npm run check:posts` passes: 12 posts, 0 errors, 3 warnings (three evidence
+  directory links have no `index.html`).
+- The Azure manifest was re-frozen once to make the transcript portable:
+  `test-results.txt` now uses LF, is 5,085 bytes, and hashes to
+  `afe76d3461d1b74584d1312ebdd3a25442dc693c12faebcd03008b8f0784e45e`.
+  Every other artifact hash is unchanged. `.gitattributes` now marks evidence as
+  `-text` so Git never rewrites the published bytes.
+- The post is still `draft: true`; the release runbook below still applies.
+- Verification commands:
+  `python scripts/evidence.py verify --slug why-an-ai-task-can-run-twice` and
+  `npm run check:post -- why-an-ai-task-can-run-twice` (add `--render` after a
+  non-draft build).
 
 ---
 

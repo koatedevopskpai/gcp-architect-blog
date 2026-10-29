@@ -1,0 +1,23 @@
+# Evidence files are hashed byte-for-byte in manifest.json.
+# Never convert line endings: preserve exactly what was published.
+# `diff` keeps text evidence reviewable without letting Git rewrite it.
+.gitattributes text eol=lf
+public/evidence/** -text diff
+public/evidence/**/*.zip binary
+public/evidence/**/*.png binary
+public/evidence/**/*.jpg binary
+public/evidence/**/*.jpeg binary
+public/evidence/**/*.gif binary
+public/evidence/**/*.webp binary
+public/evidence/**/*.pdf binary
+public/evidence/**/*.ico binary
+public/evidence/**/*.woff binary
+public/evidence/**/*.woff2 binary
+content-ops/evidence/** text eol=lf
+
+# Designed and social images are binary.
+public/images/**/*.png binary
+public/images/**/*.jpg binary
+public/images/**/*.jpeg binary
+public/images/**/*.webp binary
+public/og/**/*.png binary

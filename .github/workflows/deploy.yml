@@ -27,6 +27,7 @@ jobs:
       - name: Install and build
         run: |
           npm ci --no-audit --no-fund
+          npm run check:posts
           npx playwright install --with-deps chromium
           npm run build
 
