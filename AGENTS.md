@@ -20,3 +20,17 @@ future posts, established on 28 October 2026.
 - Prepare a shareable image for the accompanying LinkedIn draft. Reuse the blog
   graphic where it remains readable in the feed.
 - Build and inspect the rendered post before delivery.
+
+## Asset location
+
+The canonical blog workspace is `C:/Users/koate/development/gcp-architect-blog`.
+Keep all final blog source, visual assets, review documents and LinkedIn material
+inside this repository. Chat workspaces may hold temporary scratch files, but
+copy deliverables back here before reporting completion.
+
+- Site images: `public/images/<post-slug>/`.
+- Publishable operational evidence: `public/evidence/<post-slug>/`.
+- Review documents and QA captures: `docs/<post-slug>/review/`.
+- LinkedIn drafts and editable share graphics: `docs/distribution/<post-slug>/`.
+- Preserve differing local work; archive a published snapshot rather than
+  overwriting it merely to match another checkout.

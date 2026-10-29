@@ -1,0 +1,212 @@
+---
+title: "Why an AI Task Can Run Twice—and How I Tested Recovery"
+description: "Two local failure tests show why a saved result prevents a repeated model call, while a crash before the database commit can still invoke the model twice."
+category: "sre-reliability"
+cloud: "azure"
+tags: ["azure", "python", "idempotency", "queues", "reliability", "outbox", "at-least-once"]
+publishDate: 2026-10-25
+draft: true
+impact: 5
+demand: 5
+confidence: 4
+effort: 4
+proofTier: 2
+requiresOrg: false
+series: "azure-ai-ops"
+seriesOrder: 1
+---
+
+An AI request can finish successfully and still trigger a second model call.
+
+The first worker gets the answer, fails before saving it, and leaves an unfinished
+task behind. When another worker picks up that task, it has no durable result to
+reuse. Retrying can repeat the model invocation—and, with a paid provider, may
+incur another charge.
+
+I tested two failure windows in a local reference implementation. The difference
+was one database commit: **a stored result let the worker skip the model; a
+provider response that had not been stored did not.**
+
+The tests use real PostgreSQL, an in-memory queue double and a deterministic model
+stub. This is code evidence for an Azure worker design, with no paid inference
+or live Azure recovery claim. The [source download](#reproduce-the-two-failures)
+includes both tests.
+
+## The everyday version
+
+Imagine a kitchen that receives orders on paper tickets. The cook finishes an
+order, but the waiter loses the handover record before marking the ticket done.
+The next shift sees an open ticket and makes the order again.
+
+The missing fact is not whether someone received the ticket. It is whether the
+work already happened. In this application, the queue carries the ticket and
+PostgreSQL holds the durable completion record.
+
+## The system I tested
+
+```text
+client -> API -> PostgreSQL: task + outbox intent, one transaction
+                     |
+                  publisher -> queue -> worker -> model
+                                          |
+                                          +-> commit result -> delete message
+```
+
+The API writes a task and an outbox intent together. A publisher sends the
+notification. The worker claims the task in PostgreSQL, invokes the model,
+commits the result and then acknowledges the queue message.
+
+For Azure Storage Queue, receiving a message makes it temporarily invisible;
+it does not delete it. An undeleted message can become visible again. Microsoft's
+[Get Messages documentation](https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages)
+describes that lifecycle. The local queue double lets the tests request
+redelivery explicitly; it does not reproduce that timing.
+
+## Two failures, two outcomes
+
+| Failure point | Durable state | Outcome in the local test |
+|---|---|---|
+| Result committed; acknowledgement fails | Task is completed and result exists | Redelivery is acknowledged without another model call |
+| Model returns; result commit fails | Task has an unfinished claim and no result | After claim expiry, redelivery invokes the model again |
+
+The first test, `test_post_commit_ack_failure_skips_second_ai`, makes queue
+acknowledgement raise an error after completion. It checks that the task is
+already completed, redelivers the notification and asserts `ai.calls == 1`.
+
+The second test forces the earlier failure. Here is the actual test from
+`tests/test_recovery.py`:
+
+```python
+async def test_provider_response_before_commit_can_repeat(
+    repo, publisher, worker, queue, ai
+):
+    task = await submit(repo, publisher)
+    original = repo.finish
+
+    async def crash(*args, **kwargs):
+        raise OSError("crash between provider response and commit")
+
+    repo.finish = crash
+    with pytest.raises(OSError):
+        await worker.one()
+    repo.finish = original
+    async with repo.db.transaction() as conn:
+        await conn.execute(
+            "UPDATE tasks SET claim_until=now()-interval '1 s' WHERE id=$1",
+            task["id"],
+        )
+    queue.redeliver()
+    await worker.one()
+    assert ai.calls == 2  # Deliberate exactly-once limitation, not hidden.
+    assert (await repo.get("tenant-a", task["id"]))["status"] == "completed"
+```
+
+This injects an `OSError` at the repository completion boundary. It is not an OS
+process kill. The test then expires the database claim explicitly and asks the
+queue double to redeliver. Those shortcuts make the failure window reproducible
+without waiting for a real broker or killing a container.
+
+The two model calls are the expected result. The second attempt completes the
+task, but it cannot recover the first answer because the first attempt never
+stored it. This test exercises recovery of the task while exposing the limit on
+deduplicating external work.
+
+## What idempotency protects
+
+Idempotency means repeating an operation has the same intended effect. The
+operation matters: accepting a request, committing a result and invoking an
+external provider have different boundaries.
+
+| Duplicate | Guard in this design | Remaining limit |
+|---|---|---|
+| Client retries a submission | Tenant-scoped idempotency key, payload hash and database uniqueness | Does not make worker execution happen once |
+| Notification returns after completion | Terminal-status check | Requires a committed completion record |
+| Workers compete for unfinished work | Row lock, expiring claim and per-attempt claim token | Cannot undo an external call that already started |
+| Provider receives a repeated request | Provider-supported deduplication, where documented | Depends on that provider's contract and retention window |
+
+Microsoft's [Idempotent Consumer pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/idempotent-consumer)
+also distinguishes consumer deduplication from protection of downstream calls.
+This lab does not demonstrate provider-side deduplication or make a billing claim.
+
+## Ownership needs an expiry and a fence
+
+The repository locks the task row with `SELECT ... FOR UPDATE` before deciding
+whether to claim it. If a live claim already exists, the worker defers the
+notification. It does not treat an unfinished task as completed.
+
+Each new claim gets a token. Completion checks that the token still belongs to
+this attempt and the lease has not expired. This predicate is taken from
+`Repository.finish`:
+
+```sql
+WHERE id=$1 AND claim_token=$2 AND status='running'
+AND claim_until>clock_timestamp() RETURNING *
+```
+
+If a worker resumes after losing its claim, that condition prevents it from
+overwriting the new owner's result. If a worker dies, the claim eventually
+expires so another attempt can proceed. Neither mechanism reverses a model call
+already made by the old owner.
+
+The queue visibility timeout and the database claim are separate clocks. A
+redelivery can arrive while the database still considers another attempt active;
+the worker must defer it until the claim permits another attempt.
+
+## Why the outbox does not close this window
+
+The source already uses a transactional outbox: task acceptance and the intent to
+publish commit together. That addresses a different failure—accepting a task but
+losing its queue notification between two separate writes.
+
+The publisher can still send the same notification again if it fails after
+sending but before recording publication. The worker therefore still needs its
+terminal check and ownership guard. The outbox does not make the provider call
+and the PostgreSQL result commit one transaction.
+
+The next article will examine the outbox's acceptance and publication boundaries.
+
+## Reproduce the two failures
+
+Download the [reference source ZIP](/evidence/why-an-ai-task-can-run-twice/azure-ai-ops-lab-source.zip).
+It includes `PUBLICATION-NOTES.md`, dependency locks, migrations and the tests.
+Read that note before using the broader deployment files: review found unresolved
+readiness, notification and release issues, and the Azure deployment path remains
+unverified. This is a learning reference, not a production release recommendation.
+
+Use Python 3.14 and a separate disposable PostgreSQL database whose name ends in
+`_test`. The suite truncates its task and intent tables. From the extracted
+`azure-ai-ops-lab` directory, install `requirements-dev.txt` in a virtual
+environment, set `TEST_DATABASE_URL`, set `MIGRATION_DATABASE_URL` to the same URL,
+and migrate with `python -m alembic upgrade head`.
+
+Run the two focused tests:
+
+```bash
+python -m pytest -v tests/test_recovery.py::test_post_commit_ack_failure_skips_second_ai tests/test_recovery.py::test_provider_response_before_commit_can_repeat
+```
+
+Both should pass. Read their assertions: the first expects one model invocation;
+the second expects two. The queue fixture is a policy double even when an Azurite
+service is available for the separate integration tests.
+
+## Evidence and limits
+
+On 25 October 2026, the suite finished with **47 passed and 3 skipped**. Both
+failure-window tests passed. The skipped checks were the two Azurite integration
+tests (no emulator configured) and the POSIX SIGTERM process test on Windows.
+
+The publication run is recorded in the [test output](/evidence/why-an-ai-task-can-run-twice/test-results.txt)
+and [artifact manifest](/evidence/why-an-ai-task-can-run-twice/manifest.json).
+The manifest identifies the source files and download by SHA-256.
+
+This local experiment does not measure Azure queue timing, managed identity,
+Container Apps recovery, real model latency or cloud costs. Historical authoring
+checks are recorded separately in the source's `docs/VALIDATION.md`; they are not
+substitutes for the attached publication run.
+
+The useful result is specific: after a committed completion, a duplicate
+notification can be absorbed without calling the model again. Before that
+commit, recovery can require another invocation. When evaluating an
+“idempotent AI worker,” ask which side of that commit its guarantee covers.
+
+Related: [Cloud Run golden path](/posts/platform-engineering-idp/002-cloud-run-golden-path/).

@@ -1,0 +1,295 @@
+{
+  "canonical_root": "C:\\Users\\koate\\development\\gcp-architect-blog",
+  "published_commit": "1e295910663f0125e06a2f60f201271aa55d393a",
+  "preserved_local_differences": [
+    "README.md",
+    "examples/aws-lambda-safe-releases/scripts/run-live.ps1"
+  ],
+  "files": [
+    {
+      "path": "docs/aws-lambda-safe-releases/published-source/README.md",
+      "category": "published snapshot; local working version retained",
+      "sha256": "5438689eea03f9bb8314d20268adf4cc2b19a1e5550b91ea9ef2215ca464a426"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/.gitignore",
+      "category": "published asset already present",
+      "sha256": "bcfcd5a22ba3b7a296dc8f384b0933653a9d8c43053e3c85a28a95a01aa77689"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/README.md",
+      "category": "published asset already present",
+      "sha256": "55ab90e153b7c243cab9ed747d04726a4617e75046909edbbeab4b9da1f37564"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/app/handler.py",
+      "category": "published asset already present",
+      "sha256": "d569401962170a5c1760ca53267d7435eb3f6c9d0408067b02a7a70102dfc76d"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/.gitignore",
+      "category": "published asset already present",
+      "sha256": "f000a080ae3480c8592bfd0e97d4b20756c89e5fab847557a7f9563f5fdd5bee"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/.terraform.lock.hcl",
+      "category": "published asset already present",
+      "sha256": "6c4d28a195e36fd3194ec9a9b4c1b7366e42aee81a05aa01e296f34b2cac9792"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/main.tf",
+      "category": "published asset already present",
+      "sha256": "73f1ef9bfada74d3d35ecf01f3a90a0697184a0a50cc059bf5b1cd8423415106"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/outputs.tf",
+      "category": "published asset already present",
+      "sha256": "094ffc56716ea8776004024586193f700759cfed2017b4f0079b4901745da379"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/terraform.tfvars.example",
+      "category": "published asset already present",
+      "sha256": "542595af904e215097d904445abde522bfc0759e924a703cc2aee8addc521dfa"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/variables.tf",
+      "category": "published asset already present",
+      "sha256": "f0a88b51f8c3a48ff075b7f43ad69b3a46e20689d7a38365d86cc0d5d3721c47"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/infra/versions.tf",
+      "category": "published asset already present",
+      "sha256": "b2c4103ef71752c3ca827e0f328ff31430a6fd2d59ff764c66970db5fe5501ff"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/build.py",
+      "category": "published asset already present",
+      "sha256": "cf785969abf0dc34eef34763c89b5b7b743f188de80a4d7b496e0ee147a7d962"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/collect-evidence.sh",
+      "category": "published asset already present",
+      "sha256": "c15c90b39c2df7ac293dd52a745ff7cfb8b5d94a3bd34cb229d1954d571b9e0d"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/common.sh",
+      "category": "published asset already present",
+      "sha256": "13640f52631920e2b6af452972e9b8012a4bfdaa6f3e1d9de505fc390d537f41"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/deploy.sh",
+      "category": "published asset already present",
+      "sha256": "cf30317929678f544d4456a77f5ebdf3aeb0a0f6ea2f825cbe428b944ace6c6b"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/load.py",
+      "category": "published asset already present",
+      "sha256": "036d7248a05faa595fa3038c2df50a069cc727b42c46cc2d615e652404c2c595"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/redact-evidence.py",
+      "category": "published asset already present",
+      "sha256": "26eb49b79512132f037e1e78dc1a41882fec3c8b10dd946e04997f5d74cb5918"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/rehearse.py",
+      "category": "published asset already present",
+      "sha256": "4075db71a910f52671e6a624c05dc5b779ecdfff8d2f8f7763a9bacf9b665d8a"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/published-source/examples/aws-lambda-safe-releases/scripts/run-live.ps1",
+      "category": "published snapshot; local working version retained",
+      "sha256": "247bdaaf126103f2d62787e9be7d472d934dbde198aa346ff658d9c630c07f4d"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/show-stage.ps1",
+      "category": "published asset already present",
+      "sha256": "8192a2d3fedc93c7ee287c65bf6bdf82c03d3f389af60b7b7cc75d8e7c9fbe72"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/scripts/verify-teardown.sh",
+      "category": "published asset already present",
+      "sha256": "89aecd4f36981415ab05ea1acb523dda0e4e88d30aefb8a960ee1fd6a0f15d75"
+    },
+    {
+      "path": "examples/aws-lambda-safe-releases/tests/test_handler.py",
+      "category": "published asset already present",
+      "sha256": "d4b24b3ab63506f8272fe073370703be244a6e7625c48da7ab3175492049bdd8"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/.gitattributes",
+      "category": "published asset already present",
+      "sha256": "5f8d923275e72c4cb5ff654732e9dc9393b241cf6855c8b604c12d28f08ae198"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/alarms.json",
+      "category": "published asset already present",
+      "sha256": "7169ec9c886dba665e2b43ab4eecf820e9667dbc648255bf6a1d5ac24acbdf91"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/baseline-load.json",
+      "category": "published asset already present",
+      "sha256": "00e3d325f7339536cd6d82dd0efb3c13b0d5e515d97ef55d7d1f3ac632b1b382"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/codedeploy-group.json",
+      "category": "published asset already present",
+      "sha256": "00cd5ee07732c08942177e9cdbc7f18d310488810582f76e7cab15a8f8084289"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/deployment.json",
+      "category": "published asset already present",
+      "sha256": "27022491fb86f0abda0bf660fcde6cdfc9931b6ed59ec88d51b4c4d04c1b72d6"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/lambda-alias.json",
+      "category": "published asset already present",
+      "sha256": "81c2a829a9f07527816fa93eb250bf1b2e3c218408510967b4351b888773c5d0"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/load.json",
+      "category": "published asset already present",
+      "sha256": "b2cabc10f6101af3856959bd7c622eed08cdf55fca6cb63a1be3b1997f39c148"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/post-rollback-plan.txt",
+      "category": "published asset already present",
+      "sha256": "f003743c1ac6c4ce7312583f9256e30743d1e43682b60882f727ef30ffb9147f"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-0251/run-meta.txt",
+      "category": "published asset already present",
+      "sha256": "984436bf318eb9d4a725a5afdedef0c45ee19775ebb3af7c4f4a86432204944f"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-030749-native-capture/02-healthy-alias.png",
+      "category": "published asset already present",
+      "sha256": "695cc2da4c71da8cd83a973eb1fc5f95b168f50272ac7224ed2ee70ba6d0b81f"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/20261020-030749-native-capture/03-canary-alias.png",
+      "category": "published asset already present",
+      "sha256": "190efef38348e26edb449d106ed62d1bb57dc2c76093d429455510775c4986fa"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/cleanup-20261022.json",
+      "category": "published asset already present",
+      "sha256": "acffdb150cd673da482b26883b573975e5ea29f7b68be97719b3acf379a40324"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/index.html",
+      "category": "published asset already present",
+      "sha256": "61b8c632e0b49fac9fea45ead4fb17c56c5a4f76488daa467e09cc73230040f8"
+    },
+    {
+      "path": "public/evidence/aws-lambda-safe-releases/manifest.json",
+      "category": "published asset already present",
+      "sha256": "036f3549493386f8b59f2e03b7e1e9a768dae120618761d340a9c1a57620692d"
+    },
+    {
+      "path": "public/images/aws-lambda-safe-releases/rollback-summary.png",
+      "category": "published asset already present",
+      "sha256": "4e6987371b2e650a55ac36f00a5ef03c3d50fc602ab1507ef7f3f992f4c9a423"
+    },
+    {
+      "path": "src/components/AwsLambdaReleaseDiagram.astro",
+      "category": "published asset already present",
+      "sha256": "a52e7d126dc49ecd13c44d52a303b1f604fdde6ef32a5bc22bb862bf52d85d47"
+    },
+    {
+      "path": "src/content/posts/platform-engineering-idp/019-aws-lambda-safe-releases.mdx",
+      "category": "published asset already present",
+      "sha256": "628dfe5ced20fd966e8a5f82aefb9d3a49e123de17869aa0be97961918485b48"
+    },
+    {
+      "path": "docs/azure-ai-ops/review/AI-worker-post-mobile.png",
+      "category": "unpublished AI-worker draft review archive",
+      "sha256": "baf562cd6ba5f07c2de0953ea7972701187deaa91a39aeba80e82ba418b3e935"
+    },
+    {
+      "path": "docs/azure-ai-ops/review/AI-worker-post-preview.png",
+      "category": "unpublished AI-worker draft review archive",
+      "sha256": "009e3444b2eddcf7d935de2969bd2d2274b18e6687396e1d7ec95e80799c3b83"
+    },
+    {
+      "path": "docs/azure-ai-ops/review/AI-worker-test-results.txt",
+      "category": "unpublished AI-worker draft review archive",
+      "sha256": "23cf3b95ca81b8be39702765cd43b98c8cc0e33264e80ce32516494cd90f67db"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/AWS-Lambda-Safe-Releases-Revised.html",
+      "category": "review copy or visual QA capture",
+      "sha256": "1d84c2cebebb55cb037cbc74d487cf8a614f4d8e63c4405b879f5d9df8b55fe7"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/AWS-Lambda-Safe-Releases-Revised.txt",
+      "category": "review copy or visual QA capture",
+      "sha256": "42457b3287ab1c5f92ddb241f677c4a41b8da3598520e084595a037226f7f952"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/AWS-Lambda-Safe-Releases-Source-Preview.html",
+      "category": "review copy or visual QA capture",
+      "sha256": "d1f57ac9f956e5fc96c567ec1568e22fae4fb211cb4476f5a4745aae9c558e89"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/Lambda-blog-summary-mobile.png",
+      "category": "review copy or visual QA capture",
+      "sha256": "e4c87abda6ef3a5e2c63c1c9571a708b735a71420d9bdbe4245c5762673b4137"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/Lambda-diagram-dark.png",
+      "category": "review copy or visual QA capture",
+      "sha256": "737cecccb7f4c5d984e77fcb793f5ecce13b31d9f731613b1a28518a45546f2d"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/Lambda-diagram-light.png",
+      "category": "review copy or visual QA capture",
+      "sha256": "90768801d44cc5758f740c4289c703b4ccd17f26b802480b1332424bd1648c06"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/Lambda-diagram-mobile-dark.png",
+      "category": "review copy or visual QA capture",
+      "sha256": "2b89c4c2947bd8bcc8c43378999e82dc9b3608e061cdd3ba29cec768b19e437e"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/review/Lambda-diagram-mobile-light.png",
+      "category": "review copy or visual QA capture",
+      "sha256": "4d1e6cc5d3872f4aaa76f9ac6021ca917e413cfb8ecba38c308e81ab928a107a"
+    },
+    {
+      "path": "docs/distribution/aws-lambda-safe-releases/LinkedIn-Lambda-Rollback-Post.txt",
+      "category": "LinkedIn copy and editable visual assets",
+      "sha256": "224e7eee7465281fbb9b2342036db573b783c56704ee49fcc4458c467bcf805b"
+    },
+    {
+      "path": "docs/distribution/aws-lambda-safe-releases/LinkedIn-Lambda-Rollback-Visual.html",
+      "category": "LinkedIn copy and editable visual assets",
+      "sha256": "84bf335e10ce97f527b633ad418aea498769f8f303dc891f7800d5e49f8c9205"
+    },
+    {
+      "path": "docs/distribution/aws-lambda-safe-releases/LinkedIn-Lambda-Rollback-Visual.png",
+      "category": "LinkedIn copy and editable visual assets",
+      "sha256": "4e6987371b2e650a55ac36f00a5ef03c3d50fc602ab1507ef7f3f992f4c9a423"
+    },
+    {
+      "path": "docs/azure-ai-ops/review/Publication-review.md",
+      "category": "unpublished AI-worker draft review archive",
+      "sha256": "cec0ad5113d2306b66ab2a355ee89a4bfb42b66cfd2229738b386d987f30ac5c"
+    },
+    {
+      "path": "docs/azure-ai-ops/review/Why-an-AI-Task-Can-Run-Twice.md",
+      "category": "unpublished AI-worker draft review archive",
+      "sha256": "5b7313c6785def6cceb0dc75fcb3543ca0ec2cf1db5c514f43be04a8dcfc8741"
+    },
+    {
+      "path": "AGENTS.md",
+      "category": "asset-location instructions",
+      "sha256": "d1a916461036470bfe8973b0ff7ea5268dd2c130294d05aaf0ad8ef585cdc4e3"
+    },
+    {
+      "path": "docs/aws-lambda-safe-releases/ASSET_INDEX.md",
+      "category": "asset index",
+      "sha256": "4af0f9c2059d3d72e5cb40e538bd6b4fbee4a6885fd541815298f929c0ed9c68"
+    }
+  ]
+}

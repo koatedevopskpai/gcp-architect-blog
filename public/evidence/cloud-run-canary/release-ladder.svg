@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260" role="img" aria-labelledby="title desc">
+  <title id="title">Cloud Run canary release ladder</title>
+  <desc id="desc">Build, deploy with no traffic, probe the tag, shift 1 percent, 10 percent, 50 percent, then promote to 100 percent. Rollback is available at every step.</desc>
+  <rect width="960" height="260" fill="#ffffff"/>
+  <style>
+    .box { fill: #f1f5f9; stroke: #334155; stroke-width: 1.5; }
+    .gate { fill: #fef3c7; stroke: #b45309; stroke-width: 1.5; }
+    .roll { fill: #fee2e2; stroke: #b91c1c; stroke-width: 1.5; }
+    .t { font: 600 14px -apple-system, Segoe UI, Arial, sans-serif; fill: #0f172a; }
+    .s { font: 12px -apple-system, Segoe UI, Arial, sans-serif; fill: #475569; }
+    .a { stroke: #334155; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+
+  <text x="24" y="30" class="t" font-size="16">Release ladder: traffic is earned, not flipped</text>
+
+  <rect x="24" y="60" width="120" height="58" rx="8" class="box"/>
+  <text x="84" y="84" text-anchor="middle" class="t">Build</text>
+  <text x="84" y="104" text-anchor="middle" class="s">immutable image</text>
+
+  <rect x="176" y="60" width="140" height="58" rx="8" class="box"/>
+  <text x="246" y="84" text-anchor="middle" class="t">Deploy dark</text>
+  <text x="246" y="104" text-anchor="middle" class="s">--no-traffic --tag canary</text>
+
+  <rect x="348" y="60" width="130" height="58" rx="8" class="gate"/>
+  <text x="413" y="84" text-anchor="middle" class="t">Probe tag</text>
+  <text x="413" y="104" text-anchor="middle" class="s">health + version</text>
+
+  <rect x="510" y="60" width="86" height="58" rx="8" class="box"/>
+  <text x="553" y="84" text-anchor="middle" class="t">1%</text>
+  <text x="553" y="104" text-anchor="middle" class="s">5 min</text>
+
+  <rect x="628" y="60" width="86" height="58" rx="8" class="box"/>
+  <text x="671" y="84" text-anchor="middle" class="t">10%</text>
+  <text x="671" y="104" text-anchor="middle" class="s">10 min</text>
+
+  <rect x="746" y="60" width="86" height="58" rx="8" class="box"/>
+  <text x="789" y="84" text-anchor="middle" class="t">50%</text>
+  <text x="789" y="104" text-anchor="middle" class="s">5 min</text>
+
+  <rect x="864" y="60" width="72" height="58" rx="8" class="box"/>
+  <text x="900" y="84" text-anchor="middle" class="t">100%</text>
+  <text x="900" y="104" text-anchor="middle" class="s">promote</text>
+
+  <line x1="144" y1="89" x2="170" y2="89" class="a"/>
+  <line x1="316" y1="89" x2="342" y2="89" class="a"/>
+  <line x1="478" y1="89" x2="504" y2="89" class="a"/>
+  <line x1="596" y1="89" x2="622" y2="89" class="a"/>
+  <line x1="714" y1="89" x2="740" y2="89" class="a"/>
+  <line x1="832" y1="89" x2="858" y2="89" class="a"/>
+
+  <rect x="348" y="158" width="456" height="46" rx="8" class="roll"/>
+  <text x="576" y="177" text-anchor="middle" class="t">Stop condition: 5xx rate, p95 latency, restart, or SLO burn</text>
+  <text x="576" y="195" text-anchor="middle" class="s">Rollback = update-traffic to the previous revision (no redeploy)</text>
+
+  <path d="M 553 118 L 553 152" class="a" marker-end="url(#arrowRed)" stroke="#b91c1c"/>
+  <path d="M 671 118 L 671 152" class="a" marker-end="url(#arrowRed)" stroke="#b91c1c"/>
+  <path d="M 789 118 L 789 152" class="a" marker-end="url(#arrowRed)" stroke="#b91c1c"/>
+  <path d="M 900 118 L 900 152 L 810 152" class="a" marker-end="url(#arrowRed)" stroke="#b91c1c"/>
+</svg>

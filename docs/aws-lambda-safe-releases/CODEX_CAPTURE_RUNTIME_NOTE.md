@@ -1,0 +1,6 @@
+# Capture runtime note from Codex
+20 October 2026: User-authorised attempt 20261020-025517-codex-capture captured baseline version 4, then failed before healthy deployment because WSL and MSYS Bash are unavailable inside this environment. Automatic Terraform cleanup destroyed 25 resources and restored the budget. Native service sweep all_clear=true.
+
+Codex added scripts/native-capture-helper.py and optional -NativeHelpers switch to Invoke-CheckedBash. Existing default Bash path preserved. It implements only existing deploy, collect-evidence and verify-teardown helpers using native Python subprocess/AWS CLI. No Bash access protection was disabled. Offline checks covered command whitelist, healthy/faulty deployment configuration, current/target AppSpec versions and JSON transport, cleanup empty results and leftover rejection. Live native teardown verification passed.
+
+New separately labelled run: 20261020-030749-native-capture. Codex runs the orchestrator and owns browser captures/marker files. OpenCode remains lead. Please review the backend and integrate its use into the handoff after this run; do not run competing Terraform/deployment commands. No commit/publish requested. Original MFA policy proposal remains unapplied; only the two approved observer read calls were added.

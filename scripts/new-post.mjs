@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Scaffold a new post.
 // Usage: npm run new:post -- <category> <id> "<title>"
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const CATEGORIES = [
@@ -46,6 +46,14 @@ const slug = title
 
 const dir = join("src", "content", "posts", category);
 mkdirSync(dir, { recursive: true });
+
+const existing = existsSync(dir)
+  ? readdirSync(dir).filter((file) => file.startsWith(`${id}-`))
+  : [];
+if (existing.length > 0) {
+  console.error(`ID "${id}" is already used in ${category}: ${existing.join(", ")}`);
+  process.exit(1);
+}
 
 const file = join(dir, `${id}-${slug}.mdx`);
 const today = new Date().toISOString().slice(0, 10);

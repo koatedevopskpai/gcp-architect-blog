@@ -1,0 +1,180 @@
+FINAL REVIEW COPY — NOT PUBLISHED
+
+AWS Lambda safe releases: testing an automatic rollback
+
+I deliberately deployed a broken Lambda version to a configured 10% canary. CloudWatch detected invocation errors, CodeDeploy stopped the release and automatically restored the previous healthy version. The post-rollback Terraform plan reported no changes.
+
+During the six-minute load test, the client recorded 3,601 responses: 3,479 HTTP 200, 120 HTTP 500 and two HTTP 429. The useful result was the complete alarm-to-rollback path: the deployment controller reacted to the failure and the alias returned to the healthy version.
+
+This post explains the configuration, the implementation mistake that mattered, and what the saved records establish. The experiment used synthetic traffic in AWS eu-west-2 on 20 October 2026.
+
+The system behind the test
+
+Request path:
+HTTP API -> Lambda alias live -> version 2 (configured 90%)
+                             -> version 3 (configured 10%)
+
+Release control:
+Candidate exceptions -> Lambda Errors -> CloudWatch alarm -> CodeDeploy
+CodeDeploy updates the alias; rollback restores version 2 at 100%.
+
+The weights are configured allocations, not measured request shares.
+
+Terraform provisions the HTTP API, Lambda function and alias, artifact bucket, CloudWatch alarm and CodeDeploy deployment group. The function's execution role has a permissions boundary. The API invokes the stable live alias, allowing CodeDeploy to change the traffic split between published versions.
+
+The primary run used three versions:
+
+| Version | Purpose | Outcome |
+|---|---|---|
+| 1 | Terraform baseline | Initial alias target |
+| 2 | Healthy candidate | Successfully released before the failure test |
+| 3 | Deliberately faulty candidate | Configured 10% canary, then rolled back |
+
+The rollback target was version 2, the version serving traffic immediately before the faulty deployment. Version 1 was the original baseline, not the rollback target.
+
+Publish the function version, then deploy the AppSpec
+
+One implementation mistake surfaced during the live work: a Lambda CodeDeploy revision is an AppSpec, not the function ZIP.
+
+The release process first uploads the code artifact and publishes a Lambda version. It then passes an AppSpec identifying the function, alias, current version and target version to CodeDeploy. The script captures the version returned by AWS rather than predicting its number.
+
+version: 0.0
+Resources:
+  - myLambdaFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        Name: "aws-lambda-safe-releases"
+        Alias: "live"
+        CurrentVersion: "2"
+        TargetVersion: "3"
+
+The faulty release used CodeDeployDefault.LambdaCanary10Percent10Minutes: an initial 10% traffic allocation to the replacement, followed by the remaining traffic after ten minutes if the deployment continues. In this run, the alarm stopped it before that final shift. See the AWS deployment configuration documentation (https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html).
+
+Make the fault match the metric
+
+The faulty handler raises an unhandled exception. Simply returning statusCode: 500 from an otherwise successful handler would not exercise the same Lambda Errors metric. That distinction matters: a release test must generate the failure its alarm actually measures. AWS describes function exceptions and runtime failures in its Lambda invocation metrics documentation (https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html).
+
+The alarm configuration was:
+
+| Setting | Value |
+|---|---|
+| Namespace and metric | AWS/Lambda, Errors |
+| Statistic | Sum |
+| Period | 60 seconds |
+| Breach condition | At least one error in each of two evaluated periods |
+| Evaluation | Two breaching datapoints out of two |
+| Dimensions | Function name and the live alias resource |
+| Missing data | Non-breaching |
+
+This is an alias-wide count alarm. With a configured 10% canary and a healthy existing version, a completely broken candidate could produce an alias-wide error rate around 10%, rather than 100%. A percentage threshold set above that level could miss the failure.
+
+A low count threshold suits this controlled experiment. A production policy needs thresholds matched to traffic, acceptable false alarms and the service's failure modes. Missing data treated as non-breaching also means that no traffic is not evidence of candidate health.
+
+Connect the alarm to automatic rollback
+
+An alarm can stop a deployment; automatic rollback must also be enabled. These blocks sit inside the example's aws_codedeploy_deployment_group.app resource:
+
+alarm_configuration {
+  enabled = true
+  alarms  = [aws_cloudwatch_metric_alarm.errors.alarm_name]
+}
+
+auto_rollback_configuration {
+  enabled = true
+  events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+}
+
+CodeDeploy monitors the named alarm and can start a new deployment of the previous healthy revision when the configured rollback event occurs. A separate SNS alarm action is not required for this integration. The saved deployment-group record has alarm monitoring and automatic rollback enabled. See AWS's deployment-group options (https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups-configure-advanced-options.html).
+
+What happened in the live run
+
+The primary evidence run is 20261020-0251. Its controller records provide this timeline, with timestamps normalised to UTC:
+
+| Event | Time on 20 October 2026 (UTC) | Record |
+|---|---|---|
+| Faulty deployment created | 02:09:16.585 | Faulty deployment record |
+| Deployment stopped with ALARM_ACTIVE | 02:11:57.509 | Faulty deployment record |
+| Automatic rollback created | 02:11:58.057 | Deployment-group record |
+| Automatic rollback succeeded | 02:11:59.561 | Deployment-group record |
+
+That is approximately 2 minutes 43 seconds from faulty deployment creation to rollback completion. It measures the controller sequence, not customer recovery time or time from the first failed request. The aggregate load summary cannot identify the last failed request.
+
+The faulty deployment record (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/deployment.json) identifies deployment d-9PAMKTD6K, status Stopped, error ALARM_ACTIVE, and automatic rollback deployment d-YGITAAD6K. The deployment-group record (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/codedeploy-group.json) records that rollback as Succeeded.
+
+The client-side load summary covers 360.067 seconds at a configured target of 10 requests per second:
+
+| Recorded HTTP status | Responses |
+|---|---:|
+| 200 | 3,479 |
+| 500 | 120 |
+| 429 | 2 |
+| Total | 3,601 |
+
+The load summary (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/load.json) also labels 122 responses as unknown. That is a separate classification by response version marker: it consists of the 120 HTTP 500 responses and the two HTTP 429s, whose bodies did not identify a handler version. It is not an additional set of requests.
+
+These totals span the load window, not just the canary's active period. Neither the aggregate failure ratio nor the missing version markers establishes the observed canary traffic share. The 10% figure is the configured allocation.
+
+The cause of the two HTTP 429 responses remains unresolved. The implementation sets API Gateway's route rate limit to 20 requests per second with a burst limit of 50, but the saved summary lacks the response headers and correlated service records needed to attribute the throttling. The load tool records local exceptions as status 0; a local client exception does not explain a recorded HTTP 429.
+
+After rollback, the saved alias (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/lambda-alias.json) points to version 2 with no additional routing weights. The later alarm snapshot (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/alarms.json) is back in OK, and the Terraform plan (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-0251/post-rollback-plan.txt) reports: “No changes. Your infrastructure matches the configuration.”
+
+Keep Terraform and CodeDeploy from fighting
+
+Terraform owns the alias's existence; CodeDeploy owns its release-time routing. The example makes that division explicit:
+
+On aws_lambda_alias.live
+lifecycle {
+  ignore_changes = [function_version, routing_config]
+}
+
+On the Lambda function
+lifecycle {
+  ignore_changes = [filename, source_code_hash]
+}
+
+The alias exceptions prevent a later Terraform apply from resetting CodeDeploy's selected version or routing weights. The function exceptions hand code updates to the release process.
+
+The trade-off is important: Terraform no longer detects changes to those ignored fields through its normal plan comparison. Access controls and release auditing must cover that ownership boundary. The clean plan shows that the controllers coexisted in this run; it does not establish that every possible drift would be detected.
+
+How this compares with the Cloud Run examples
+
+| Release concern | This Lambda example | Cloud Run companion approach |
+|---|---|---|
+| Traffic control | Weighted alias across published versions | Revision traffic percentages |
+| Detection | CloudWatch alarm on alias invocation errors | Cloud Monitoring alerts on service health |
+| Recovery | CodeDeploy automatic rollback on an active deployment alarm | Explicit gcloud run services update-traffic rollback |
+| Policy owner | Deployment group and alarm configuration | The script or pipeline implementing the policy |
+
+The comparison is between these implementations. In the AWS example, CodeDeploy provides the configured stop-and-rollback mechanism. In the Cloud Run companion approach, the operator implements the decision and traffic update. Both need a defined failure signal and a tested recovery path.
+
+The Cloud Run golden path (https://gcp-architect-blog.web.app/posts/platform-engineering-idp/002-cloud-run-golden-path/) and Cloud Run SLO article (https://gcp-architect-blog.web.app/posts/sre-reliability/004-slos-for-cloud-run/) provide the related GCP context. Google's traffic migration documentation (https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration) describes the underlying revision controls.
+
+Cost controls and cleanup
+
+The example has no NAT gateway or provisioned concurrency. Its main cost drivers are API requests, Lambda execution, logging, the alarm and artifact storage. The USD 5 budget is an alerting guardrail, not a hard spending cap. No measured dollar total is claimed because billing exports have not been reconciled to the runs.
+
+The lab stacks were destroyed. On 22 October 2026, eight service-specific inventory checks and a Project-tag sweep in eu-west-2 returned no matching demo resources. Terraform state contained only the retained budget. The dated cleanup record (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/cleanup-20261022.json) includes the checks and results; its coverage is the lab's expected resources, not an account-wide resource audit.
+
+Reproduce the experiment
+
+The example README (https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/aws-lambda-safe-releases) contains the deployment and teardown instructions. Prerequisites are Terraform 1.5 or later, AWS CLI v2, Python 3.11 or later, pytest for the handler tests, and Bash for the shell scripts. Use credentials for a sandbox account and agree an explicit spend allowance before applying infrastructure.
+
+From the repository root, run the handler tests first:
+
+python -m pytest examples/aws-lambda-safe-releases/tests/test_handler.py -v
+
+Then follow the README to build the baseline, review and apply the Terraform plan, release the healthy candidate, and deploy the faulty canary under bounded load. Capture the deployment and rollback records, inspect the alias, and run a post-rollback plan before teardown.
+
+If the alarm does not fire within the runbook's five-minute detection window, stop the deployment with rollback enabled and record a failed detection. A canary test needs a defined stop condition as well as a traffic split.
+
+Evidence scope
+
+The evidence index (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/) links the machine records and source-to-publication hash manifest. The evidence supports an alarm-triggered stop, a successful automatic rollback, the restored alias configuration and a clean post-rollback plan in this synthetic run.
+
+The run resumed after local implementation fixes. The recorded starting commit therefore does not identify an exact frozen deployed revision, and the current example is a reproduction recipe rather than an immutable record of every byte deployed. The captured experiment used local commands; GitHub Actions OIDC configuration is included in the source, but an observed GitHub Actions deployment is not claimed.
+
+A console screenshot in the evidence pack (https://gcp-architect-blog.web.app/evidence/aws-lambda-safe-releases/20261020-030749-native-capture/03-canary-alias.png) shows the configured split in a separate run, 20261020-030749-native-capture, using versions 5, 6 and 7. That run reached an alarm checkpoint, timed out waiting for the operator and was cleaned up. It illustrates routing configuration, not the primary run's rollback sequence.
+
+For a future rerun, I would freeze the source and artifact hashes before deployment and retain timestamped request results, response headers and correlated service logs. That would strengthen source provenance and make recovery timing and the two throttled responses easier to explain.
+
+The engineering lesson is to test the failure path under load, identify the previous healthy version explicitly, and verify the outcome through the deployment controller, the alias and the infrastructure plan. A configured canary is only the beginning; the release needs a working decision to stop and recover.

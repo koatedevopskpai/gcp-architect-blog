@@ -135,3 +135,26 @@ New-OgImage `
     -TextHex "#EFF6FF" `
     -W 1200 `
     -H 504
+
+# --- Why an AI task can run twice (Azure AI Ops, post 1) ---
+$aiTitle = "Why an AI task can run twice, and how I tested recovery"
+
+New-OgImage `
+    -OutFile (Join-Path $ogDir "005-why-an-ai-task-can-run-twice.png") `
+    -Eyebrow "AZURE SRE - AI WORKER RECOVERY" `
+    -Title $aiTitle `
+    -Footer $sloFooter `
+    -BgHex "#0B1220" `
+    -AccentHex "#38BDF8" `
+    -TextHex "#F8FAFC"
+
+New-OgImage `
+    -OutFile (Join-Path $ogDir "005-why-an-ai-task-can-run-twice-devto.png") `
+    -Eyebrow "AZURE SRE - AI WORKER RECOVERY" `
+    -Title $aiTitle `
+    -Footer $sloFooter `
+    -BgHex "#0B1220" `
+    -AccentHex "#38BDF8" `
+    -TextHex "#F8FAFC" `
+    -W 1200 `
+    -H 504

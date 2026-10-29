@@ -1,0 +1,230 @@
+---
+title: "Operating an AI worker on Azure: shutdown, identity, deployment and cost"
+description: "The Azure operating checklist for an AI worker: graceful shutdown, managed identity, revisions and rollback, observability, and the cost checks I still have to run."
+category: "sre-reliability"
+cloud: "azure"
+tags: ["azure", "container-apps", "managed-identity", "deployment", "observability", "cost", "reliability"]
+publishDate: 2026-10-23
+draft: true
+impact: 5
+demand: 4
+confidence: 4
+effort: 3
+proofTier: 2
+requiresOrg: false
+series: "azure-ai-ops"
+seriesOrder: 3
+---
+
+> **Draft status — not publishable yet.** This post is the operating checklist
+> for the Azure run. I have not deployed the worker to Azure, called a real
+> model, measured cloud cost or completed a live recovery exercise. The local
+> evidence is 49 passing tests and a successful local end-to-end smoke test.
+> Every cloud claim below is marked pending.
+
+A local test can prove the worker handles a fake SIGTERM. It cannot prove that
+Container Apps delivers SIGTERM early enough for the worker to release the
+message. It cannot prove that role assignments have propagated, that a revision
+rollback leaves the previous revision healthy, or that a month of model calls
+costs what the calculator suggested.
+
+This post is about the difference between “the code works” and “the worker is
+operable.” I am writing it before the Azure checks so the claims stay honest.
+The checkboxes are the contract for publishing it.
+
+## What the local tests already cover
+
+The local suite has 49 passing tests. It covers idempotency, redelivery,
+retries, timeouts, cancellation, SSE heartbeat and disconnect behaviour, and
+the worker's response to a stop signal. The local end-to-end smoke test submits
+a task, processes it through the worker, and reads the completed result.
+
+That is useful. It is not Azure evidence.
+
+| Local proof | Azure equivalent that is still missing |
+|---|---|
+| Fake queue redelivery | Storage Queue visibility timeout and `dequeue_count` |
+| Fake stop event | Container Apps SIGTERM and grace period |
+| Local PostgreSQL | Managed PostgreSQL connectivity and connection limits |
+| Local model client | Azure OpenAI latency, quota and token cost |
+| Local process | Container Apps revision, health probes and rollback |
+| Local test output | App Insights traces and cost data |
+
+The rest of this post is the gap.
+
+## Shutdown: the worker has to leave before the platform kills it
+
+Container Apps sends SIGTERM before stopping a replica. The worker should stop
+taking new messages, release any in-flight message, and exit inside the grace
+period. If it waits for a five-minute model call, the platform can kill it
+first. The message becomes visible again, and the model is called again.
+
+The worker uses a stop event and races it against the model call. On stop, it
+nacks with visibility zero so another replica can pick the message up
+immediately.
+
+The Azure check is not “does the code have a stop event.” It is:
+
+1. Does a revision scale-down or deployment actually deliver SIGTERM?
+2. How long does the worker take to exit?
+3. Does the message reappear with the expected attempt count?
+4. Does the next replica complete the task?
+5. Is there a duplicate model call in the trace?
+
+The YAML setting I need to verify is the grace period on the worker's revision:
+
+```yaml
+template:
+  containers:
+    - name: worker
+      image: "${ACR_LOGIN_SERVER}/ai-ops-worker:${IMAGE_TAG}"
+  terminationGracePeriodSeconds: 30
+```
+
+The exact value is a trade-off. Too short and the worker cannot release the
+message cleanly. Too long and a bad revision takes too long to drain. The
+evidence is a shutdown log with timestamps, not a screenshot of the YAML.
+
+**Status: pending live shutdown test.**
+
+## Identity: the container should not know a secret
+
+The API and worker use user-assigned managed identities. The identities get the
+minimum roles:
+
+| Identity | Role | Scope |
+|---|---|---|
+| API | `Key Vault Secrets User` | The lab vault |
+| API | `AcrPull` | The lab registry |
+| Worker | `Key Vault Secrets User` | The lab vault |
+| Worker | `Storage Queue Data Contributor` | The task queue |
+| Worker | `Cognitive Services OpenAI User` | The Azure OpenAI resource |
+| Migration job | `AcrPull` | The lab registry |
+
+The Container App references Key Vault secrets by URL and identity. The secret
+value does not appear in the image, the Bicep parameters or the deployment
+history.
+
+The check is:
+
+- `az containerapp show` shows a `secretRef`, not a value.
+- The Key Vault secret list does not expose values.
+- The worker can read the queue and call the model with its own identity.
+- Removing a role produces a clear failure, not a retry loop that hides it.
+
+**Status: pending live identity check.** The role assignments can take several
+minutes to propagate. A first deploy that fails on a fresh role assignment is
+an expected setup issue, but it still has to be recorded rather than retried
+until it looks green.
+
+## Deployment: a revision is not a release
+
+The release path is:
+
+1. Build and test in CI.
+2. Push an immutable image tag to Azure Container Registry.
+3. Run the migration as a Container Apps Job.
+4. Update the API and worker revisions.
+5. Wait for readiness.
+6. Shift traffic to the new API revision.
+7. Roll back by shifting traffic if the smoke test fails.
+
+The migration Job matters because schema changes must happen once, before new
+code serves traffic. An init container would run once per replica and hide the
+failure inside the pod lifecycle. Startup DDL in the API would race across
+replicas and give the runtime identity schema privileges it does not need.
+
+The rollback matters because a redeploy is not a rollback. A redeploy can fail
+for the same reason the first release failed. Shifting traffic back to the
+previous revision is faster and keeps the bad revision available for
+investigation.
+
+The check is:
+
+- A failed required check blocks a pull request.
+- A failed migration stops the release before traffic moves.
+- A bad revision receives no traffic after rollback.
+- `/health/ready` returns 200 on the revision receiving traffic.
+- The previous revision is still addressable.
+
+**Status: pending live deploy and rollback.**
+
+## Monitoring: measure the queue, not just the process
+
+A worker that is running is not necessarily a worker that is making progress.
+The signals I care about are:
+
+| Signal | Why it matters |
+|---|---|
+| Queue depth | Work is arriving faster than it is processed |
+| Age of oldest message | The queue is growing stale, even if depth looks stable |
+| Outbox lag | The API accepted work the relay has not published |
+| Retry count by task | A transient fault is becoming a permanent one |
+| Dead-letter count | Work has exhausted its retry budget |
+| Model latency | The task timeout and visibility timeout are related to it |
+| Token usage per task | Cost is a reliability property when retries are unbounded |
+| Trace parentage | The worker span joins the API trace for the same task |
+
+The API and worker set `session.id` and `task.id` on spans. The useful trace is
+not a single successful request; it is one API span, two worker attempts, and a
+single completed task. That is how you see a redelivery without reading the
+queue console.
+
+**Status: pending Application Insights query and trace capture.**
+
+## Cost: the number I have not measured
+
+I am not going to publish an invented monthly cost. The lab has a budget and a
+teardown runbook, but the actual figure depends on model tokens, log ingestion,
+minimum replicas, queue operations and how long the environment stays up.
+
+The cost table I will fill after the run is:
+
+| Component | What I will measure | Status |
+|---|---|---|
+| Container Apps | vCPU-seconds and memory-seconds for API, worker and jobs | Pending |
+| Azure OpenAI | Input tokens, output tokens and retries per task | Pending |
+| Storage Queue | Operations and storage for tasks and dead letters | Pending |
+| PostgreSQL | Compute, storage and backup | Pending |
+| Container Registry | Image storage | Pending |
+| Log Analytics and App Insights | Ingestion and retention | Pending |
+| Networking | Egress, if any | Pending |
+
+The important cost question is not “what does one request cost.” It is “what
+does one *failed* request cost after retries, redeliveries and a duplicate model
+call.” That is the number the reliability design is trying to bound.
+
+**Status: pending actual cost measurement.** No estimate will be presented as a
+measured result.
+
+## The publish gate
+
+I will publish this post only when these are true:
+
+- [ ] A real deploy run succeeds from CI.
+- [ ] A failed quality gate blocks a pull request.
+- [ ] Key Vault references resolve through managed identity.
+- [ ] The migration Job succeeds and a failed migration stops the release.
+- [ ] A bad revision rolls back by traffic shift.
+- [ ] A live SIGTERM releases an in-flight message.
+- [ ] A real model call completes through the worker.
+- [ ] The trace shows one API span and the worker attempts for the same task.
+- [ ] A live recovery exercise is recorded.
+- [ ] The cost table contains measured values, not estimates.
+
+Until then, the honest description is: local code proven, Azure operation
+unproven.
+
+## What this does not prove
+
+Even after the checks, this is a lab. It does not prove production scale,
+multi-region resilience, GPU operations or a cost-optimal architecture. It
+proves the operating loop: deploy, observe, shut down, roll back and account for
+the work.
+
+The series is deliberately bounded. The first post is about a duplicate model
+call. The second is about accepting work when the queue is unavailable. This one
+is about operating the worker that ties them together.
+
+[Compare with the AWS Lambda rollback experiment](/posts/platform-engineering-idp/019-aws-lambda-safe-releases/)
+[Compare with SLOs for Cloud Run](/posts/sre-reliability/004-slos-for-cloud-run/)

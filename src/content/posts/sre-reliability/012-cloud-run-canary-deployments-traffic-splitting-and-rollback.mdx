@@ -1,0 +1,311 @@
+---
+title: "Cloud Run canary deployments: traffic splitting and rollback"
+description: "A staged Cloud Run canary with revision tags, weighted traffic, revision-scoped alerts, and a rollback that is a traffic shift rather than a redeploy."
+category: "sre-reliability"
+cloud: "gcp"
+tags: ["cloud-run", "canary", "traffic-splitting", "terraform", "rollback", "sre", "progressive-delivery"]
+publishDate: 2026-10-28
+draft: true
+impact: 4
+demand: 4
+confidence: 5
+effort: 2
+proofTier: 3
+requiresOrg: false
+series: "cloud-run-golden-path"
+seriesOrder: 3
+codeRepo: "https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/cloud-run-canary"
+---
+
+import Callout from "../../../components/Callout.astro";
+
+<Callout type="warn" title="Draft status — scaffold, no live run yet">
+This post and its companion example are prepared but **have not been applied
+to a GCP project**. There are no measured numbers, screenshots, or cost figures
+in this draft. Claims that need evidence are marked *pending*. The example
+Terraform validates, but validation is not a deployment.
+</Callout>
+
+Most Cloud Run releases are binary: build a new image, deploy it, and the
+service moves from one revision to another with all traffic following at once.
+If the new revision is wrong, every user is wrong at the same moment.
+
+A canary changes the shape of that failure. The candidate revision receives a
+small share of real traffic, a defined signal decides whether it survives, and
+a rollback is a traffic command rather than another deploy. This post is the
+release ladder I want for my own services, the parts of Cloud Run that make it
+possible, and the measurements that have to exist before I publish the result.
+
+## Why a binary traffic flip is the wrong default
+
+Cloud Run already gives you almost everything a canary needs:
+
+- Every deploy creates an immutable **revision**.
+- Traffic can be split by percentage across revisions.
+- A revision can be reached directly through a **tag** URL.
+- Rollback means moving percentages, not rebuilding an artifact.
+
+What it does not give you is a policy. There is no built-in "watch this
+revision for ten minutes and promote it if the error rate stays below X."
+That policy is the interesting part, and it is where most home-grown canaries
+quietly stop being canaries: they shift 10% of traffic and then eyeball a
+dashboard once.
+
+![Release ladder: build, tag without traffic, shift 1%, 10%, 50%, then 100%, with rollback at any step](/evidence/cloud-run-canary/release-ladder.svg)
+
+*The ladder used by the companion example. Times and percentages are a starting
+policy, not measured results.*
+
+## The revision model, plainly
+
+A Cloud Run service is a name, a region, and a traffic configuration. Each
+deploy produces a revision with its own image digest, environment, resources,
+and concurrency settings. The service routes requests to revisions according
+to the traffic block:
+
+| Traffic form | What it means | Canary use |
+|---|---|---|
+| `LATEST = 100` | All traffic to the newest ready revision | The default; binary release |
+| `REVISION = N` | All traffic pinned to a named revision | Rollback and blue/green |
+| `TAG = N` | A share to a tagged revision | Possible canary step |
+| Tag URL | Direct request path to one revision | Pre-traffic smoke test |
+
+The example weights traffic by **explicit revision name**, not by tag
+percentage. That removes an ambiguity: when a revision was deployed with
+`--no-traffic`, "the rest goes to latest" can mean the candidate. Tags are used
+for the pre-flight URL; revision names are used for the split.
+
+Two details matter in practice:
+
+1. **Tags are stable names attached to one revision.** `canary` can point at
+   revision `svc-00042-abc` today and `svc-00043-def` tomorrow. The tag URL is
+   how you test the candidate before it sees production traffic.
+2. **A traffic split is not a session.** Cloud Run does not promise that one
+   user stays on one revision. If your change is not backward compatible with
+   the previous revision — a schema migration, a changed response shape, a new
+   required cookie — a canary percentage will not save you. Those changes need
+   expand/contract sequencing, not a traffic trick.
+
+## Tag the candidate before you shift a single request
+
+The first deploy is deliberately dark:
+
+```bash
+gcloud run deploy canary-demo \
+  --image "$IMAGE" \
+  --region us-central1 \
+  --no-traffic \
+  --tag canary \
+  --set-env-vars FAIL_MODE=0
+```
+
+`--no-traffic` creates the revision without sending it user traffic.
+`--tag canary` gives it a URL you can call directly. This is the cheapest
+possible gate: if the container does not start, the startup probe fails, or
+the health endpoint is wrong, no user sees the failure.
+
+```bash
+CANARY_URL=$(gcloud run services describe canary-demo \
+  --region us-central1 \
+  --format='value(status.traffic[?tag="canary"].url)' | head -n1)
+
+curl -fsS "$CANARY_URL/healthz"
+curl -fsS "$CANARY_URL/version"
+```
+
+Only after that check passes does the revision deserve a traffic percentage.
+
+## Shift traffic in steps, with an explicit stop condition
+
+The companion script moves through **1% → 10% → 50% → 100%**. The exact
+numbers are a policy choice; the important part is that each step has a
+decision attached to it.
+
+```bash
+# previous revision captured before the candidate is deployed
+gcloud run services update-traffic canary-demo \
+  --region us-central1 \
+  --to-revisions "$PREVIOUS=99,$CANDIDATE=1"
+```
+
+The `CHECK_CMD` hook is where the decision lives. In the example it probes the
+tagged candidate; a production pipeline should query revision-scoped metrics
+instead. Either way, a non-zero exit stops the ladder and triggers the rollback
+path.
+
+| Step | Traffic | Bake time | Question being asked |
+|---|---:|---:|---|
+| Smoke | 0% (tag only) | none | Does the revision start and answer basic requests? |
+| Shade | 1% | 5 min | Does it survive a real request mix at all? |
+| Canary | 10% | 10 min | Is the error rate distinguishable from baseline? |
+| Ramp | 50% | 5 min | Does it hold under production-scale concurrency? |
+| Complete | 100% | — | Is the old revision still available for rollback? |
+
+The load-bearing word is **distinguishable**. At 1% of traffic, a single
+failure can look like a crisis and a real regression can be invisible. A
+canary needs enough requests per step for the signal to mean something, and
+that depends on your traffic volume, not on a fixed percentage. For a
+low-traffic service, a canary may need to be driven by synthetic requests
+against the tag URL instead of waiting for organic traffic.
+
+Stop conditions should be written before the release starts. In the example
+I use:
+
+- 5xx **rate** on the candidate revision above a threshold for two consecutive
+  minutes;
+- p95 latency above the pre-release baseline by a fixed margin;
+- container instance restarts or failed startup probes;
+- any alert firing on the service's existing availability SLO.
+
+The first two are revision-scoped. The last one is service-scoped and will fire
+on the canary only once its share is large enough to move the aggregate. That
+is why a canary needs both views.
+
+## Rollback is a traffic command, not a redeploy
+
+The most useful property of the revision model is that the previous healthy
+revision is still there. Rolling back is:
+
+```bash
+gcloud run services update-traffic canary-demo \
+  --region us-central1 \
+  --to-revisions "$PREVIOUS_REVISION=100"
+```
+
+That command takes effect without building, pushing, or starting a new
+revision. The failed candidate remains addressable by its tag for
+investigation. Deleting it immediately destroys the evidence you need.
+
+Capture the previous revision **before** the first shift, not during the
+incident:
+
+```bash
+PREVIOUS_REVISION=$(gcloud run services describe canary-demo \
+  --region us-central1 \
+  --format='value(status.traffic[0].revisionName)')
+```
+
+Two caveats:
+
+- If the service is already split across revisions, "the previous revision" is
+  ambiguous. Decide in advance which revision is the rollback target.
+- If the candidate is at 100% and the previous revision has been deleted by a
+  cleanup policy, there is nothing to roll back to. Keep at least one previous
+  revision during the bake window.
+
+## Decide who owns traffic: Terraform or the release controller
+
+If Terraform manages the service and the release pipeline also changes
+traffic, the next `terraform apply` will fight the pipeline. Pick one owner.
+
+**Option A — Terraform owns traffic.** The pipeline builds and deploys
+revisions, but traffic percentages are changed by pull request. Slower, fully
+auditable, and a poor fit for an automated canary.
+
+**Option B — the release controller owns traffic.** Terraform creates the
+service and then ignores the fields the pipeline changes:
+
+```hcl
+resource "google_cloud_run_v2_service" "app" {
+  # ...
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      traffic,
+    ]
+  }
+}
+```
+
+This is the model in the companion example. The trade-off is explicit:
+Terraform is no longer the detector for drift in the image or traffic fields.
+Release auditing, IAM, and a clean plan after the run still matter.
+
+A middle path is to let Terraform own the steady state (`100%` to the latest
+revision) and let the pipeline own only the temporary canary steps. That works,
+but the reconciliation has to be deliberate: after promotion, Terraform should
+show no changes, and that "no changes" is itself a test.
+
+## What to measure, and what a canary cannot tell you
+
+A Cloud Run canary decision should use revision-scoped metrics:
+
+- `run.googleapis.com/request_count`, grouped by `revision_name` and
+  `response_code_class`;
+- `run.googleapis.com/request_latencies`, p95/p99 per revision;
+- `run.googleapis.com/container/instance_count` and startup latency;
+- log-based counts for handler exceptions that still return HTTP 200.
+
+That last one matters. A service that catches an exception and returns a
+friendly 200 looks healthy to every HTTP metric. The canary stops on the
+signal you actually instrumented, not the signal you assumed.
+
+What a canary cannot do:
+
+- prove correctness — it only measures the requests it receives;
+- replace a rollback plan for data migrations;
+- fix a service that has too little traffic for a percentage to be meaningful;
+- guarantee the same user does not alternate between revisions;
+- tell you the candidate is faster without a baseline measured under the same
+  load.
+
+## The lab
+
+The companion example under
+[`examples/cloud-run-canary`](https://github.com/koatedevopskpai/gcp-architect-blog/tree/main/examples/cloud-run-canary)
+contains:
+
+- Terraform for the Artifact Registry repo, runtime service account, Cloud Run
+  service, and a service-level 5xx alert;
+- a tiny stdlib-only Python app with `/healthz`, `/version`, and a
+  `FAIL_MODE` switch for controlled failure;
+- `scripts/canary-release.sh` for the tag-then-shift ladder;
+- `scripts/check-canary.sh` as the lab stop condition (an active probe, not a
+  substitute for revision metrics);
+- `scripts/load.sh` for bounded load during each bake step.
+
+The example deliberately excludes a database, a queue, and a custom domain.
+The question is traffic control, not application architecture.
+
+## Evidence gates for this post
+
+This draft stays `draft: true` until all of these are true:
+
+- [ ] `terraform validate` and `terraform plan` captured with the real project.
+- [ ] Live deploy of a healthy revision at 100%.
+- [ ] Candidate deployed with `--no-traffic --tag canary`; tag URL checked.
+- [ ] 1%, 10%, and 50% steps captured with request/error/latency data per
+      revision.
+- [ ] A deliberately faulty candidate stopped at an early step.
+- [ ] Rollback executed by traffic shift; time-to-recovery measured.
+- [ ] Post-rollback `terraform plan` shows no changes.
+- [ ] Cost of the run and teardown recorded, with the service destroyed.
+- [ ] `proofTier` raised from 3 to 1 only after the live evidence exists.
+
+## Limits and related work
+
+This is a traffic-shifting pattern, not a deployment platform. It does not
+cover database migrations, feature flags, or multi-region promotion. The
+[AWS Lambda safe-release experiment](/posts/platform-engineering-idp/019-aws-lambda-safe-releases/)
+solves the same problem with an alias, a CodeDeploy deployment configuration,
+and an alarm-driven automatic rollback; the Cloud Run version keeps the
+decision in an explicit script so every step is visible.
+
+For the surrounding service design, see the
+[Cloud Run golden path](/posts/platform-engineering-idp/002-cloud-run-golden-path/)
+and [SLOs for Cloud Run](/posts/sre-reliability/004-slos-for-cloud-run/). A
+canary is a release control; an SLO is the contract that tells you whether the
+release is acceptable.
+
+## Reproduce
+
+```bash
+cd examples/cloud-run-canary
+terraform init
+terraform apply -var="project_id=YOUR_PROJECT" -var="image=..."
+```
+
+Then follow `README.md` for the tag, shift, stop, and rollback sequence. Set a
+spend allowance before applying and destroy the stack the same day.
+
+*Pending: real command output, revision names, timings, and cost.*

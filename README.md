@@ -66,6 +66,13 @@ codeRepo: "https://github.com/…/examples/…"   # optional
 
 Pillars (A–G) live in `src/data/categories.ts`.
 
+### Editorial backlog
+
+`content-ops/backlog.yaml` tracks `planned`, `published` and `merged` topics.
+`npm run score` scores only planned topics and lists the other two separately, so
+the scorecard never reports live work as unstarted. IDs must be unique within a
+category; `npm run new:post` refuses to reuse an existing prefix.
+
 ### Proof tiers
 
 | Tier | Meaning | Evidence |

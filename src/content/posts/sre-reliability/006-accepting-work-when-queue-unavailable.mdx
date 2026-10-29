@@ -1,0 +1,244 @@
+---
+title: "Accepting work when the queue is unavailable: PostgreSQL, transactions and the outbox"
+description: "Committing a task and sending a queue message are two operations. If the queue is down between them, the work is lost or duplicated. Here is the PostgreSQL outbox fix."
+category: "sre-reliability"
+cloud: "azure"
+tags: ["azure", "postgresql", "outbox", "transactions", "queues", "reliability", "python"]
+publishDate: 2026-10-23
+draft: true
+impact: 5
+demand: 5
+confidence: 4
+effort: 4
+proofTier: 2
+requiresOrg: false
+series: "azure-ai-ops"
+seriesOrder: 2
+---
+
+> **Draft status — local evidence only.** The local suite is at 49 passing
+> tests and the local end-to-end smoke test completes. The live queue-outage
+> exercise, the live outbox relay and Azure cost measurements are pending. Do
+> not read the local result as a cloud result.
+
+The first post ended with a duplicate model call. This one starts earlier: with
+work that was accepted but never became a message.
+
+That failure is quieter. The client gets an error, retries, and gets the same
+task ID. The task sits in PostgreSQL as `pending`. No worker ever sees it. From
+the outside, the system looks healthy until someone asks why the task has not
+moved.
+
+## Two writes, one gap
+
+The API does two things when it accepts a task:
+
+1. Insert the task row.
+2. Send the queue message.
+
+They cannot both be atomic unless they share a transaction. PostgreSQL and
+Azure Storage Queue do not share one. So there are three possible outcomes:
+
+| Task row | Queue message | Result |
+|---|---|---|
+| Committed | Sent | Correct |
+| Committed | Not sent | Orphaned task; no worker will process it |
+| Not committed | Sent | Message for a task the worker cannot find |
+
+Sending first is not a fix. The worker can receive the message before the task
+row is visible, fail to find it, and discard it. Committing first leaves the
+orphan. A distributed transaction across PostgreSQL and Storage Queue is not
+available, and pretending otherwise just moves the failure.
+
+The outbox is the standard way out: make the database transaction the only place
+where acceptance is decided.
+
+## The outbox in plain terms
+
+An outbox is a to-do list written in the same transaction as the task.
+
+The API inserts the task and an outbox row together. If the transaction commits,
+both exist. If it rolls back, neither exists. A separate relay reads unpublished
+outbox rows and sends the queue messages.
+
+```text
+BEGIN
+  INSERT task
+  INSERT outbox(task.queued)
+COMMIT
+  |
+  v
+relay: claim unpublished rows
+  |
+  | send to queue
+  v
+mark published
+```
+
+The API can now return `202 Accepted` as soon as the transaction commits. It no
+longer depends on the queue being available at request time. The relay owns the
+retry.
+
+That is the guarantee: **accepted work is durable before it is acknowledged to
+the caller.** It is not a guarantee that the work is processed exactly once.
+
+## The transaction
+
+The task and the outbox row share one session and one commit:
+
+```python
+async with session.begin():
+    session.add(task)
+    session.add(
+        Outbox(
+            id=uuid.uuid4().hex,
+            task_id=task.id,
+            topic="tasks",
+            payload={"task_id": task.id},
+        )
+    )
+
+# The commit is the acceptance point. The relay will publish later.
+return {"id": task.id}
+```
+
+The idempotency constraint still matters. A duplicate `POST` with the same
+`(session_id, idempotency_key)` must return the existing task without inserting a
+second outbox row. The unique constraint decides the winner; the loser re-reads
+and returns the winner's ID.
+
+A minimal outbox table looks like this:
+
+```sql
+CREATE TABLE outbox (
+    id           uuid PRIMARY KEY,
+    task_id      uuid NOT NULL REFERENCES tasks(id),
+    topic        text NOT NULL,
+    payload      jsonb NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    claimed_at   timestamptz,
+    published_at timestamptz,
+    attempts     integer NOT NULL DEFAULT 0
+);
+
+CREATE INDEX outbox_unpublished_idx
+    ON outbox (created_at)
+    WHERE published_at IS NULL;
+```
+
+The partial index keeps the relay's scan small. Retention matters too: an outbox
+that grows forever becomes a second database. Archive or delete published rows
+after a known window.
+
+## The relay
+
+The relay must claim rows without letting two relay instances publish the same
+row at the same time. PostgreSQL's `FOR UPDATE SKIP LOCKED` is the useful
+primitive:
+
+```sql
+WITH claimed AS (
+    SELECT id
+    FROM outbox
+    WHERE published_at IS NULL
+      AND (claimed_at IS NULL OR claimed_at < now() - interval '1 minute')
+    ORDER BY created_at
+    LIMIT 50
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE outbox o
+SET claimed_at = now()
+FROM claimed c
+WHERE o.id = c.id
+RETURNING o.id, o.task_id, o.topic, o.payload;
+```
+
+The claim transaction commits before the network call. The relay then sends each
+message and marks the row published:
+
+```python
+for row in claimed:
+    try:
+        await queue.send(Message(task_id=row.task_id, payload=row.payload))
+        await mark_published(row.id)
+    except Exception:
+        await release_claim(row.id)
+        raise
+```
+
+Do not hold the database transaction open while waiting for the queue. A slow
+queue would turn into a long row lock, and a failed send would leave the lock
+behind. Claim, commit, send, mark.
+
+## The duplicate the outbox creates
+
+The relay is at-least-once. If it sends a message and crashes before
+`mark_published`, the next relay run sends the same message again. That is not a
+reason to avoid the outbox; it is a reason to keep the worker's terminal check.
+
+The two mechanisms cover different gaps:
+
+- The outbox covers the gap between the database commit and the queue send.
+- The terminal check covers the gap between the result commit and the queue
+  acknowledgement.
+- Task ownership covers two workers processing the same message at the same
+  time.
+- A provider idempotency key, where available, covers the model call itself.
+
+None of them replaces the others.
+
+## What PostgreSQL gives you, and what it does not
+
+PostgreSQL gives you a real transaction boundary, a unique constraint for
+idempotency, row locks for claiming, and `SKIP LOCKED` for parallel relays. It
+does not give you a transaction with Azure Storage Queue.
+
+The practical rules I use:
+
+1. Write the task and outbox row in one transaction.
+2. Return success only after that commit.
+3. Let the relay retry; do not make the request wait for the queue.
+4. Keep the worker's terminal check even though the outbox exists.
+5. Measure outbox lag, not just queue depth.
+
+That last point matters. A healthy queue can hide a relay that is not running.
+The signal is the age of the oldest unpublished outbox row, not the number of
+messages in Storage Queue.
+
+## What I tested locally
+
+| Claim | Status |
+|---|---|
+| 49 local tests pass | Yes, 23 October 2026 |
+| Local end-to-end smoke test completes | Yes |
+| Task and outbox row commit or roll back together | Covered by the local transaction tests |
+| Relay duplicate delivery is harmless to the worker | Covered by the terminal check |
+| Live queue outage and recovery on Azure | Not run |
+| Live outbox relay against Storage Queue | Not run |
+| Cost of retries and duplicate model calls | Not measured |
+
+The local tests exercise the transaction boundary and the worker's response to a
+redelivery. They do not prove that an Azure Storage Queue outage behaves the way
+the local fake does.
+
+## What this does not solve
+
+An outbox does not make the model call exactly once. It does not remove the
+need for a provider idempotency key. It does not remove the crash window inside
+the worker. It does not make a slow relay invisible to the caller unless the API
+contract says “accepted, not finished.”
+
+It does make one failure much harder: the API can no longer accept a task and
+lose it because the queue was down for five seconds.
+
+## The next check
+
+The next post is about operating the worker on Azure: graceful shutdown,
+managed identity, revisions and rollback, observability, and the cost figures I
+still have to measure. That post stays unpublished until those checks exist.
+
+Next in the series: **Operating an AI worker on Azure** (publishing after the
+cloud checks and cost measurements are complete).
+
+[Compare with the AWS Lambda rollback experiment](/posts/platform-engineering-idp/019-aws-lambda-safe-releases/)
+[Compare with SLOs for Cloud Run](/posts/sre-reliability/004-slos-for-cloud-run/)

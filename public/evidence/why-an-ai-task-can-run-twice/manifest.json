@@ -1,0 +1,62 @@
+{
+  "run_id": "20261025-local-publication",
+  "recorded_at_utc": "2026-10-25T13:31:34.407629+00:00",
+  "source_snapshot": "23 October 2026 reference bundle; original MANIFEST.sha256 verified, 76 files",
+  "source_commit": null,
+  "source_commit_note": "Source was delivered as an archive; SHA-256 identifies the snapshot. No commit is asserted.",
+  "result": {
+    "passed": 47,
+    "skipped": 3,
+    "failed": 0,
+    "errors": 0
+  },
+  "skips": [
+    "Azurite visibility/receipt integration: emulator not configured",
+    "Azurite visibility-expiry integration: emulator not configured",
+    "POSIX SIGTERM process test: Windows"
+  ],
+  "claims": {
+    "post_commit_ack_failure_one_model_call": "tests/test_recovery.py::test_post_commit_ack_failure_skips_second_ai",
+    "pre_commit_failure_two_model_calls": "tests/test_recovery.py::test_provider_response_before_commit_can_repeat",
+    "stale_owner_cannot_complete": "tests/test_boundaries.py::test_expired_owner_cannot_complete_over_new_owner",
+    "outbox_atomicity": "tests/test_boundaries.py::test_task_and_initial_intent_roll_back_together"
+  },
+  "limits": [
+    "No Azure deployment",
+    "No paid model inference or billing measurement",
+    "Recovery tests use a queue policy double and explicit claim expiry",
+    "Known broader reference defects listed in PUBLICATION-NOTES.md inside ZIP"
+  ],
+  "artifacts": [
+    {
+      "path": "azure-ai-ops-lab-source.zip",
+      "sha256": "228f01473d8683ea9e8a59def5c8d03649d80c60cf43b78a0dd2c8410a7ca8cc",
+      "bytes": 74997
+    },
+    {
+      "path": "src/common/repository.py",
+      "sha256": "7c45db21e77e13fc1a4b1c5321c15db250afea8ac32d9d0ca36bf1d92a303f9c",
+      "bytes": 8850
+    },
+    {
+      "path": "src/worker/worker.py",
+      "sha256": "4d042794c88b2487cccde73374a5912e5e4efe5d08bfc2887f26dfad341e5fd4",
+      "bytes": 6792
+    },
+    {
+      "path": "test-results.txt",
+      "sha256": "23cf3b95ca81b8be39702765cd43b98c8cc0e33264e80ce32516494cd90f67db",
+      "bytes": 5153
+    },
+    {
+      "path": "tests/fakes.py",
+      "sha256": "6a9b84d7a2f2557de4364b3d073e754519dbd72f631f542b245d118d5f93c45b",
+      "bytes": 1210
+    },
+    {
+      "path": "tests/test_recovery.py",
+      "sha256": "286f7f2d08cfdb8791a19b74452cce6fc030dea82ed5248ea478dc6fed4983d3",
+      "bytes": 5038
+    }
+  ]
+}

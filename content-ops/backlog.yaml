@@ -1,60 +1,127 @@
 # Editorial backlog. Scored by `npm run score`.
+# status: planned | published | merged
 # proofTier: 1 = live run, 2 = code proof, 3 = reference
 # requiresOrg: true -> scheduled last (needs a GCP organization)
+#
+# IDs are unique within this backlog. Post filenames use the same numeric
+# convention inside each category directory; `npm run new:post` refuses to
+# reuse an existing prefix in the same category.
 topics:
+  # --- Published -----------------------------------------------------------
   - id: "001"
     title: "Workload Identity Federation from GitHub Actions to GCP"
     category: "security-iam"
-    impact: 5
-    demand: 5
-    confidence: 5
-    effort: 2
+    cloud: "gcp"
+    status: "published"
+    publishedAs: "src/content/posts/security-iam/001-workload-identity-federation-github-to-gcp.mdx"
+    publishedOn: 2026-10-07
     proofTier: 2
-    requiresOrg: false
 
   - id: "002"
     title: "Cloud Run golden path: Terraform + CI/CD + SLOs"
     category: "platform-engineering-idp"
-    impact: 5
-    demand: 5
-    confidence: 5
-    effort: 3
+    cloud: "gcp"
+    status: "published"
+    publishedAs: "src/content/posts/platform-engineering-idp/002-cloud-run-golden-path.mdx"
+    publishedOn: 2026-10-08
     proofTier: 1
-    requiresOrg: false
 
   - id: "003"
     title: "SLOs for Cloud Run: latency, availability, multi-window alerts"
     category: "sre-reliability"
-    impact: 5
-    demand: 5
-    confidence: 5
-    effort: 3
+    cloud: "gcp"
+    status: "published"
+    publishedAs: "src/content/posts/sre-reliability/004-slos-for-cloud-run.mdx"
+    publishedOn: 2026-10-15
     proofTier: 1
-    requiresOrg: false
+    note: "Published as file 004; backlog id 003 is historical."
 
+  - id: "007"
+    title: "RAG on GCP under budget: Cloud Run + pgvector + Vertex AI"
+    category: "data-mlops"
+    cloud: "gcp"
+    status: "published"
+    publishedAs: "src/content/posts/data-mlops/004-production-rag-gcp.mdx"
+    publishedOn: 2026-10-10
+    proofTier: 1
+    note: "Renumbered from 003 to 004 to remove the duplicate prefix."
+
+  - id: "016"
+    title: "Deploying RAG on Microsoft Foundry: 11 gotchas and their fixes"
+    category: "data-mlops"
+    cloud: "azure"
+    status: "published"
+    publishedAs: "src/content/posts/data-mlops/001-foundry-rag-gotchas.md"
+    publishedOn: 2026-10-09
+    proofTier: 1
+
+  - id: "017"
+    title: "Four retrieval modes, benchmarked: when they tie, when BM25 wins, and what a reranker costs"
+    category: "data-mlops"
+    cloud: "azure"
+    status: "published"
+    publishedAs: "src/content/posts/data-mlops/002-retrieval-mode-benchmark-four-modes.md"
+    publishedOn: 2026-10-09
+    proofTier: 1
+
+  - id: "018"
+    title: "When a reranker earns its latency: semantic paraphrases vs crowded near-duplicates"
+    category: "data-mlops"
+    cloud: "azure"
+    status: "published"
+    publishedAs: "src/content/posts/data-mlops/003-reranking-semantic-crowded.md"
+    publishedOn: 2026-10-10
+    proofTier: 1
+
+  - id: "019"
+    title: "AWS Lambda safe releases: testing an automatic rollback"
+    category: "platform-engineering-idp"
+    cloud: "aws"
+    status: "published"
+    publishedAs: "src/content/posts/platform-engineering-idp/019-aws-lambda-safe-releases.mdx"
+    publishedOn: 2026-10-28
+    proofTier: 1
+    note: "Live run 2026-10-20; bounded publication review complete 2026-10-22. Video and native-helper parity remain open and are not claimed."
+
+  # --- Merged --------------------------------------------------------------
   - id: "004"
     title: "Multi-window multi-burn-rate alerting on GCP with Terraform"
     category: "sre-reliability"
-    impact: 5
-    demand: 5
-    confidence: 5
-    effort: 4
-    proofTier: 1
-    requiresOrg: false
+    cloud: "gcp"
+    status: "merged"
+    mergedInto: "003"
+    note: "Covered by the published SLO post; not a separate article."
 
+  # --- Planned -------------------------------------------------------------
   - id: "005"
     title: "BigQuery partitioning and clustering: a cost benchmark"
     category: "data-mlops"
+    cloud: "gcp"
+    status: "planned"
     impact: 4
     demand: 4
     confidence: 5
     effort: 3
+    proofTier: 2
+    requiresOrg: false
+
+  - id: "020"
+    title: "Kubernetes GitOps operations with Flux: reconciliation and failure tests"
+    category: "platform-engineering-idp"
+    cloud: "multi"
+    status: "planned"
+    impact: 5
+    demand: 4
+    confidence: 4
+    effort: 5
     proofTier: 2
     requiresOrg: false
 
   - id: "006"
     title: "Pub/Sub to Dataflow to BigQuery: an exactly-once pipeline"
     category: "data-mlops"
+    cloud: "gcp"
+    status: "planned"
     impact: 4
     demand: 4
     confidence: 4
@@ -62,19 +129,23 @@ topics:
     proofTier: 1
     requiresOrg: false
 
-  - id: "007"
-    title: "RAG on GCP under budget: Cloud Run + pgvector + Vertex AI"
+  - id: "021"
+    title: "Operating an AI service: evaluation, failures, latency and cost"
     category: "data-mlops"
+    cloud: "multi"
+    status: "planned"
     impact: 5
     demand: 5
     confidence: 4
-    effort: 4
+    effort: 5
     proofTier: 1
     requiresOrg: false
 
   - id: "008"
     title: "Multi-region failover with a global load balancer"
     category: "multicloud-enterprise"
+    cloud: "gcp"
+    status: "planned"
     impact: 5
     demand: 5
     confidence: 4
@@ -85,6 +156,8 @@ topics:
   - id: "009"
     title: "GCP cost guardrails: labels, budgets, and anomaly alerts"
     category: "finops"
+    cloud: "gcp"
+    status: "planned"
     impact: 4
     demand: 4
     confidence: 5
@@ -95,6 +168,8 @@ topics:
   - id: "010"
     title: "Terraform remote state on GCS: bootstrap and locking"
     category: "platform-engineering-idp"
+    cloud: "gcp"
+    status: "planned"
     impact: 4
     demand: 4
     confidence: 5
@@ -105,6 +180,8 @@ topics:
   - id: "011"
     title: "A DevSecOps Cloud Build pipeline: build, Checkov, Trivy, SBOM, gate"
     category: "platform-engineering-idp"
+    cloud: "gcp"
+    status: "planned"
     impact: 5
     demand: 4
     confidence: 5
@@ -113,19 +190,24 @@ topics:
     requiresOrg: false
 
   - id: "012"
-    title: "Cloud Run canary deployments with traffic splitting"
+    title: "Cloud Run canary deployments with traffic splitting and rollback"
     category: "sre-reliability"
+    cloud: "gcp"
+    status: "planned"
     impact: 4
     demand: 4
     confidence: 5
     effort: 2
     proofTier: 1
     requiresOrg: false
+    note: "Scaffolded 2026-10-28: draft article, examples/cloud-run-canary, and evidence SVG exist. No live run; post stays draft: true until the evidence gates in the article are met."
 
-  # --- Phase 1B: org-gated (scheduled last) ---
+  # --- Phase 1B: org-gated (scheduled last) --------------------------------
   - id: "013"
     title: "Production GCP landing zone with Terraform: org, folders, projects"
     category: "architecture-leadership"
+    cloud: "gcp"
+    status: "planned"
     impact: 5
     demand: 5
     confidence: 5
@@ -136,6 +218,8 @@ topics:
   - id: "014"
     title: "Shared VPC for multi-team platforms: design and guardrails"
     category: "platform-engineering-idp"
+    cloud: "gcp"
+    status: "planned"
     impact: 5
     demand: 4
     confidence: 5
@@ -146,9 +230,50 @@ topics:
   - id: "015"
     title: "VPC Service Controls: perimeter design and leak testing"
     category: "security-iam"
+    cloud: "gcp"
+    status: "planned"
     impact: 5
     demand: 5
     confidence: 4
     effort: 4
     proofTier: 2
     requiresOrg: true
+
+  - id: "022"
+    title: "Why an AI Task Can Run Twice—and How I Tested Recovery"
+    category: "sre-reliability"
+    cloud: "azure"
+    status: "planned"
+    impact: 5
+    demand: 5
+    confidence: 4
+    effort: 4
+    proofTier: 2
+    requiresOrg: false
+    note: "Draft in src/content/posts/sre-reliability/005-why-an-ai-task-can-run-twice.mdx; 49 local tests + local E2E, Azure pending."
+
+  - id: "023"
+    title: "Accepting work when the queue is unavailable: PostgreSQL, transactions and the outbox"
+    category: "sre-reliability"
+    cloud: "azure"
+    status: "planned"
+    impact: 5
+    demand: 5
+    confidence: 4
+    effort: 4
+    proofTier: 2
+    requiresOrg: false
+    note: "Draft in src/content/posts/sre-reliability/006-accepting-work-when-queue-unavailable.mdx; live queue-outage evidence pending."
+
+  - id: "024"
+    title: "Operating an AI worker on Azure: shutdown, identity, deployment and cost"
+    category: "sre-reliability"
+    cloud: "azure"
+    status: "planned"
+    impact: 5
+    demand: 4
+    confidence: 4
+    effort: 3
+    proofTier: 2
+    requiresOrg: false
+    note: "Draft in src/content/posts/sre-reliability/007-operating-ai-worker-on-azure.mdx; publish only after live Azure checks and measured costs."

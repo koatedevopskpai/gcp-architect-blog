@@ -1,0 +1,68 @@
+Publication verification — 25 October 2026
+Python 3.14.5 / Windows; PostgreSQL 18.4, fresh disposable database.
+Command: python -m pytest -v -p no:cacheprovider --junitxml=publication-tests.xml
+Source: included azure-ai-ops-lab-source.zip (unchanged source snapshot).
+No Azurite connection configured: two broker integration tests skipped.
+POSIX SIGTERM process test skipped on Windows.
+Recovery tests use real PostgreSQL, MemoryQueue and LocalAIClient.
+Local filesystem paths removed from this public transcript.
+
+============================= test session starts =============================
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 50 items
+
+tests/test_auth_and_release.py::test_signed_jwt_requires_role_tenant_issuer_audience_and_signature PASSED [  2%]
+tests/test_auth_and_release.py::test_exact_job_execution_and_image PASSED [  4%]
+tests/test_auth_and_release.py::test_rollback_uses_captured_stable_revision PASSED [  6%]
+tests/test_boundaries.py::test_task_and_initial_intent_roll_back_together PASSED [  8%]
+tests/test_boundaries.py::test_publisher_ack_failure_duplicates_notification_not_result PASSED [ 10%]
+tests/test_boundaries.py::test_expired_owner_cannot_complete_over_new_owner PASSED [ 12%]
+tests/test_boundaries.py::test_cancel_completion_race_has_one_terminal_winner PASSED [ 14%]
+tests/test_boundaries.py::test_poison_ack_failure_deduplicates_durable_intent PASSED [ 16%]
+tests/test_boundaries.py::test_stop_arriving_during_receive_does_not_claim PASSED [ 18%]
+tests/test_boundaries.py::test_readiness_outage_keeps_liveness PASSED    [ 20%]
+tests/test_boundaries.py::test_result_byte_limit_creates_failure PASSED  [ 22%]
+tests/test_boundaries.py::test_snapshot_timeout_requests_reconnect PASSED [ 24%]
+tests/test_contracts.py::test_invalid_settings_rejected[overrides0] PASSED [ 26%]
+tests/test_contracts.py::test_invalid_settings_rejected[overrides1] PASSED [ 28%]
+tests/test_contracts.py::test_invalid_settings_rejected[overrides2] PASSED [ 30%]
+tests/test_contracts.py::test_invalid_settings_rejected[overrides3] PASSED [ 32%]
+tests/test_contracts.py::test_canonical_hash PASSED                      [ 34%]
+tests/test_contracts.py::test_authentication_required PASSED             [ 36%]
+tests/test_contracts.py::test_idempotency_and_payload_conflict PASSED    [ 38%]
+tests/test_contracts.py::test_concurrent_duplicate_submission PASSED     [ 40%]
+tests/test_contracts.py::test_tenant_scoping_and_session_label PASSED    [ 42%]
+tests/test_contracts.py::test_invalid_body[body0] PASSED                 [ 44%]
+tests/test_contracts.py::test_invalid_body[body1] PASSED                 [ 46%]
+tests/test_contracts.py::test_invalid_body[body2] PASSED                 [ 48%]
+tests/test_contracts.py::test_invalid_body[body3] PASSED                 [ 50%]
+tests/test_contracts.py::test_actual_byte_limit PASSED                   [ 52%]
+tests/test_contracts.py::test_cancel_completed_returns_truth PASSED      [ 54%]
+tests/test_contracts.py::test_terminal_sse_snapshot PASSED               [ 56%]
+tests/test_contracts.py::test_exclusive_claim PASSED                     [ 58%]
+tests/test_contracts.py::test_cancel_fences_stale_completion PASSED      [ 60%]
+tests/test_contracts.py::test_invalid_task_id PASSED                     [ 62%]
+tests/test_contracts.py::test_missing_idempotency_key PASSED             [ 64%]
+tests/test_contracts.py::test_idempotency_scoped_by_tenant PASSED        [ 66%]
+tests/test_integration.py::test_real_visibility_receipts_and_iteration SKIPPED [ 68%]
+tests/test_integration.py::test_real_visibility_expiry SKIPPED (AZUR...) [ 70%]
+tests/test_integration.py::test_real_sigterm_process_releases_claim SKIPPED [ 72%]
+tests/test_recovery.py::test_broker_outage_preserves_outbox PASSED       [ 74%]
+tests/test_recovery.py::test_post_commit_ack_failure_skips_second_ai PASSED [ 76%]
+tests/test_recovery.py::test_stop_releases_owned_work PASSED             [ 78%]
+tests/test_recovery.py::test_stop_before_receive PASSED                  [ 80%]
+tests/test_recovery.py::test_running_cancel_prevents_result PASSED       [ 82%]
+tests/test_recovery.py::test_timeout_is_terminal PASSED                  [ 84%]
+tests/test_recovery.py::test_retry_then_success PASSED                   [ 86%]
+tests/test_recovery.py::test_retry_cap_and_durable_dlq PASSED            [ 88%]
+tests/test_recovery.py::test_invalid_envelope_quarantined PASSED         [ 90%]
+tests/test_recovery.py::test_provider_response_before_commit_can_repeat PASSED [ 92%]
+tests/test_recovery.py::test_completed_task_dlq_not_recreated PASSED     [ 94%]
+tests/test_recovery.py::test_reconciler_repairs_stale_notification PASSED [ 96%]
+tests/test_stream_and_trace.py::test_disconnect_over_real_http_does_not_cancel PASSED [ 98%]
+tests/test_stream_and_trace.py::test_context_propagates_through_durable_intent PASSED [100%]
+
+======================= 47 passed, 3 skipped in 10.98s ========================

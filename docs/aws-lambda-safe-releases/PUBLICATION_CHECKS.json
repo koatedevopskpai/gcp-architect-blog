@@ -1,0 +1,10 @@
+{
+  "manifest_hashes": "passed",
+  "public_text_redaction": "passed",
+  "internal_article_links": 23,
+  "exactly_one_comparison_table": true,
+  "handler_tests": "4 passed",
+  "site_build": "passed; PLAYWRIGHT_BROWSERS_PATH points at existing user install",
+  "preview": "Chrome inspected opening and caption, desktop viewport; no mobile testing claimed",
+  "recorded_video": false
+}

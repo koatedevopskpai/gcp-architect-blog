@@ -1,0 +1,16 @@
+I tested an AWS Lambda release that was designed to fail.
+
+Across 3,601 requests, the live experiment recorded 3,479 HTTP 200s, 120 HTTP 500s and two HTTP 429s. CodeDeploy stopped the faulty canary with ALARM_ACTIVE and triggered automatic rollback. The saved alias returned to the previous healthy version, and Terraform reported no changes afterwards.
+
+The engineering details were the useful part:
+• Raise an exception when testing Lambda Errors; returning an HTTP 500 is a different signal.
+• Put the alarm on the live alias and give it time to detect failure before promotion.
+• Let Terraform own the alias's existence and CodeDeploy own its routing.
+• Keep configured traffic weights separate from observed request counts.
+
+This is a synthetic portfolio demonstration. The primary run was resumed after implementation fixes; I don't claim a flawless unattended pipeline. I've included the records, limitations and a separately labelled console capture. The resources have been destroyed and cleanup rechecked.
+
+Article and evidence (publish the blog before posting this):
+https://gcp-architect-blog.web.app/posts/platform-engineering-idp/019-aws-lambda-safe-releases/
+
+#AWS #PlatformEngineering #DevOps #Terraform #CloudEngineering
