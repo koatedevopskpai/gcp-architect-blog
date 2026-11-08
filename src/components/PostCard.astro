@@ -16,7 +16,7 @@ const { title, description, category, tags, publishDate, proofTier } = post.data
   <div class="post-card-meta">
     <CategoryBadge category={category} />
     <time datetime={publishDate.toISOString()}>{formatDate(publishDate)}</time>
-    <span class="tier" title={TIER_LABEL[proofTier].desc}>T{proofTier} · {TIER_LABEL[proofTier].label}</span>
+    <span class="tier" title={post.data.evidenceLabel ?? TIER_LABEL[proofTier].desc}>{post.data.evidenceLabel ?? `T${proofTier} · ${TIER_LABEL[proofTier].label}`}</span>
   </div>
   <h2><a href={`/posts/${post.id}/`}>{title}</a></h2>
   <p>{description}</p>

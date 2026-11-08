@@ -1,0 +1,67 @@
+<figure class="ai-recovery" aria-labelledby="ai-recovery-title">
+  <div class="summary-card">
+    <p class="eyebrow">Local AI worker lab · PostgreSQL · Queue</p>
+    <p class="summary-title" id="ai-recovery-title">Two failure windows, one commit apart.</p>
+    <p class="intro">The difference is whether the result is already durable.</p>
+    <div class="windows">
+      <section class="window committed" aria-label="Result committed first">
+        <p class="window-label">Window 1</p>
+        <p class="window-title">Result committed first</p>
+        <ol>
+          <li>Model returns</li>
+          <li>Result commit succeeds</li>
+          <li>Queue acknowledgement fails</li>
+          <li>Redelivery finds a completed task</li>
+        </ol>
+        <p class="result"><strong>1</strong> model call</p>
+        <p class="outcome">The stored result is reused.</p>
+      </section>
+      <section class="window uncommitted" aria-label="Result commit fails">
+        <p class="window-label">Window 2</p>
+        <p class="window-title">Failure before completion commit</p>
+        <ol>
+          <li>Model returns</li>
+          <li>Result commit fails</li>
+          <li>Claim expires; message redelivers</li>
+          <li>No stored result to reuse</li>
+        </ol>
+        <p class="result"><strong>2</strong> model calls</p>
+        <p class="outcome">The task recovers; the model runs again.</p>
+      </section>
+    </div>
+    <p class="test-result"><strong>47 passed · 3 skipped</strong><br />Both failure-window tests passed: one asserts 1 call, the other asserts 2.</p>
+  </div>
+  <figcaption>
+    Illustrated summary · local tests, 25 October 2026.
+    <a href="/images/why-an-ai-task-can-run-twice/opening-summary.png">View the full-size graphic.</a>
+  </figcaption>
+</figure>
+
+<style>
+  .ai-recovery { margin: 1.5rem 0; }
+  .summary-card { background: #0b1622; color: #f2f7fb; border: 1px solid #2b455c; border-top: 5px solid #4cc2ff; border-radius: 9px; padding: 1.25rem; }
+  .summary-card p { color: #f2f7fb; margin: 0; }
+  .summary-card .eyebrow { color: #6fd3ff; font-size: 0.8rem; line-height: 1.5; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .summary-card .summary-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; margin-bottom: 0.75rem; }
+  .summary-card .intro { color: #b7c9d6; margin-bottom: 1.25rem; }
+  .windows { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .window { min-width: 0; background: #12273a; border: 1px solid #2b455c; border-radius: 8px; padding: 1rem; }
+  .committed { border-top: 5px solid #34d8c0; }
+  .uncommitted { border-top: 5px solid #ffb86b; }
+  .summary-card .window-label { color: #b7c9d6; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; margin-bottom: 0.4rem; }
+  .summary-card .window-title { font-size: 1.15rem; font-weight: 700; line-height: 1.35; }
+  .committed .window-title, .committed .result strong { color: #7de8d3; }
+  .uncommitted .window-title, .uncommitted .result strong { color: #ffc78a; }
+  .window ol { list-style: none; margin: 1rem 0; padding: 0; }
+  .window li { color: #d7e4ec; font-size: 1rem; line-height: 1.5; }
+  .window li:not(:last-child)::after { content: "↓"; display: block; color: #b7c9d6; line-height: 1.5; }
+  .summary-card .result { border-top: 1px solid #2b455c; padding-top: 0.75rem; font-weight: 700; }
+  .result strong { font-size: 2.4rem; line-height: 1; margin-right: 0.35rem; }
+  .summary-card .outcome { margin-top: 0.75rem; color: #b7c9d6; }
+  .summary-card .test-result { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #2b455c; color: #b7c9d6; }
+  .test-result strong { color: #f2f7fb; }
+  figcaption { font-size: 0.85rem; color: var(--fg-muted); margin-top: 0.6rem; }
+  @media (min-width: 720px) and (max-width: 1039px), (min-width: 1500px) {
+    .windows { grid-template-columns: 1fr 1fr; }
+  }
+</style>

@@ -1,16 +1,17 @@
 ---
 title: "Why an AI Task Can Run Twice—and How I Tested Recovery"
-description: "Two local failure tests show why a saved result prevents a repeated model call, while a crash before the database commit can still invoke the model twice."
+description: "Two local failure tests show why a committed result prevents a repeated model call, while failure before the database commit can still invoke the model twice."
 category: "sre-reliability"
 cloud: "azure"
 tags: ["azure", "python", "idempotency", "queues", "reliability", "outbox", "at-least-once"]
-publishDate: 2026-10-25
-draft: true
+publishDate: 2026-11-08
+draft: false
 impact: 5
 demand: 5
 confidence: 4
 effort: 4
 proofTier: 2
+evidenceLabel: "Local tests · reference implementation"
 requiresOrg: false
 series: "azure-ai-ops"
 seriesOrder: 1
@@ -19,25 +20,33 @@ ogImage: "/og/005-why-an-ai-task-can-run-twice.png"
 
 An AI request can finish successfully and still trigger a second model call.
 
-The first worker gets the answer, fails before saving it, and leaves an unfinished
+The first worker gets the answer, fails before committing it, and leaves an unfinished
 task behind. When another worker picks up that task, it has no durable result to
 reuse. Retrying can repeat the model invocation—and, with a paid provider, may
 incur another charge.
 
 I tested two failure windows in a local reference implementation. The difference
-was one database commit: **a stored result let the worker skip the model; a
-provider response that had not been stored did not.**
+was one database commit: **a committed result let the worker skip the model; a
+provider response that had not been committed did not.**
 
 The tests use real PostgreSQL, an in-memory queue double and a deterministic model
 stub. This is code evidence for an Azure worker design, with no paid inference
 or live Azure recovery claim. The [source download](#reproduce-the-two-failures)
 includes both tests.
 
+import AiTaskRecoverySummary from "../../../components/AiTaskRecoverySummary.astro";
+
+<AiTaskRecoverySummary />
+
 ## The everyday version
 
 Imagine a kitchen that receives orders on paper tickets. The cook finishes an
-order, but the waiter loses the handover record before marking the ticket done.
-The next shift sees an open ticket and makes the order again.
+order, but the completion mark is lost before it is recorded. The next shift
+sees an open ticket and makes the order again.
+
+Now change one detail: the ticket is marked done, but nobody clears it from the
+rack. The next shift sees the completion mark and skips the work. The ticket
+returned; the order does not need cooking again.
 
 The missing fact is not whether someone received the ticket. It is whether the
 work already happened. In this application, the queue carries the ticket and
@@ -45,20 +54,16 @@ PostgreSQL holds the durable completion record.
 
 ## The system I tested
 
-```text
-client -> API -> PostgreSQL: task + outbox intent, one transaction
-                     |
-                  publisher -> queue -> worker -> model
-                                          |
-                                          +-> commit result -> delete message
-```
+1. **Accept:** the API writes the task and its outbox intent in one PostgreSQL transaction.
+2. **Publish:** the publisher sends a notification to the queue.
+3. **Claim:** the worker locks the task row with `SELECT ... FOR UPDATE` and records its claim.
+4. **Invoke:** the worker calls the model after the claim transaction commits.
+5. **Complete:** the worker commits the result only if its claim token and lease are still valid.
+6. **Acknowledge:** the worker deletes the processed queue message.
 
-The API writes a task and an outbox intent together. A publisher sends the
-notification. The worker claims the task in PostgreSQL, invokes the model,
-commits the result and then acknowledges the queue message.
-
-For Azure Storage Queue, receiving a message makes it temporarily invisible;
-it does not delete it. An undeleted message can become visible again. Microsoft's
+For Azure Storage Queue, retrieving a message with `Get Messages` makes it
+invisible for the visibility timeout; it does not delete it. An undeleted
+message can become visible again. Microsoft's
 [Get Messages documentation](https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages)
 describes that lifecycle. The local queue double lets the tests request
 redelivery explicitly; it does not reproduce that timing.
@@ -70,12 +75,12 @@ redelivery explicitly; it does not reproduce that timing.
 | Result committed; acknowledgement fails | Task is completed and result exists | Redelivery is acknowledged without another model call |
 | Model returns; result commit fails | Task has an unfinished claim and no result | After claim expiry, redelivery invokes the model again |
 
-The first test, `test_post_commit_ack_failure_skips_second_ai`, makes queue
+The first test, [the post-commit acknowledgement-failure test](/evidence/why-an-ai-task-can-run-twice/tests/test_recovery.py), makes queue
 acknowledgement raise an error after completion. It checks that the task is
 already completed, redelivers the notification and asserts `ai.calls == 1`.
 
-The second test forces the earlier failure. Here is the actual test from
-`tests/test_recovery.py`:
+The second test, [the pre-commit failure test](/evidence/why-an-ai-task-can-run-twice/tests/test_recovery.py), forces the earlier failure.
+Here is the actual test from that same source file:
 
 ```python
 async def test_provider_response_before_commit_can_repeat(
@@ -132,8 +137,10 @@ This lab does not demonstrate provider-side deduplication or make a billing clai
 ## Ownership needs an expiry and a fence
 
 The repository locks the task row with `SELECT ... FOR UPDATE` before deciding
-whether to claim it. If a live claim already exists, the worker defers the
-notification. It does not treat an unfinished task as completed.
+whether to claim it. If a live claim already exists, the worker delays processing
+until the claim permits another attempt. It calls the queue adapter's `nack`
+with the calculated delay rather than acknowledging unfinished work as completed.
+The in-memory test double requeues immediately; it does not reproduce Azure timing.
 
 Each new claim gets a token. Completion checks that the token still belongs to
 this attempt and the lease has not expired. This predicate is taken from
@@ -147,7 +154,9 @@ AND claim_until>clock_timestamp() RETURNING *
 If a worker resumes after losing its claim, that condition prevents it from
 overwriting the new owner's result. If a worker dies, the claim eventually
 expires so another attempt can proceed. Neither mechanism reverses a model call
-already made by the old owner.
+already made by the old owner. The row lock protects the short claim transaction,
+not the whole model invocation. A claim token fences later database writes; it
+does not guarantee that an old worker stops external work immediately.
 
 The queue visibility timeout and the database claim are separate clocks. A
 redelivery can arrive while the database still considers another attempt active;
@@ -155,9 +164,10 @@ the worker must defer it until the claim permits another attempt.
 
 ## Why the outbox does not close this window
 
-The source already uses a transactional outbox: task acceptance and the intent to
-publish commit together. That addresses a different failure—accepting a task but
-losing its queue notification between two separate writes.
+The transactional outbox commits task acceptance and the intent to publish in
+one PostgreSQL transaction. A publisher can retry notification delivery after a
+queue outage without losing that intent. This closes the acceptance-to-publication
+gap; it cannot put an external model call and a local result update in one transaction.
 
 The publisher can still send the same notification again if it fails after
 sending but before recording publication. The worker therefore still needs its
@@ -170,9 +180,9 @@ The next article will examine the outbox's acceptance and publication boundaries
 
 Download the [reference source ZIP](/evidence/why-an-ai-task-can-run-twice/azure-ai-ops-lab-source.zip).
 It includes `PUBLICATION-NOTES.md`, dependency locks, migrations and the tests.
-Read that note before using the broader deployment files: review found unresolved
-readiness, notification and release issues, and the Azure deployment path remains
-unverified. This is a learning reference, not a production release recommendation.
+The deployment files are a learning reference, with known readiness, notification
+and release issues documented in `PUBLICATION-NOTES.md`. Read those notes before
+using them: the Azure deployment path remains unverified and is not production-ready.
 
 Use Python 3.14 and a separate disposable PostgreSQL database whose name ends in
 `_test`. The suite truncates its task and intent tables. From the extracted
@@ -209,5 +219,3 @@ The useful result is specific: after a committed completion, a duplicate
 notification can be absorbed without calling the model again. Before that
 commit, recovery can require another invocation. When evaluating an
 “idempotent AI worker,” ask which side of that commit its guarantee covers.
-
-Related: [Cloud Run golden path](/posts/platform-engineering-idp/002-cloud-run-golden-path/).

@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" type="image/svg+xml" href="https://gcp-architect-blog.web.app/favicon.svg"><title>Why an AI Task Can Run Twice—and How I Tested Recovery — Koate Kpai</title><meta name="description" content="Two local failure tests show why a committed result prevents a repeated model call, while failure before the database commit can still invoke the model twice."><link rel="canonical" href="https://gcp-architect-blog.web.app/posts/sre-reliability/005-why-an-ai-task-can-run-twice/"><meta property="og:title" content="Why an AI Task Can Run Twice—and How I Tested Recovery — Koate Kpai"><meta property="og:description" content="Two local failure tests show why a committed result prevents a repeated model call, while failure before the database commit can still invoke the model twice."><meta property="og:type" content="article"><meta property="og:image" content="https://gcp-architect-blog.web.app/og/005-why-an-ai-task-can-run-twice.png"><meta name="twitter:card" content="summary_large_image"><meta property="article:published_time" content="2026-11-08T00:00:00.000Z"><link rel="alternate" type="application/rss+xml" title="Koate Kpai" href="https://gcp-architect-blog.web.app/rss.xml"><style>:root{--bg: #ffffff;--bg-soft: #f7f8fa;--bg-code: #f6f8fa;--fg: #1f2328;--fg-muted: #59636e;--border: #d1d9e0;--accent: #1a73e8;--accent-soft: #e8f0fe;--warn: #b7791f;--warn-bg: #fff8e1;--tip: #1a7f37;--tip-bg: #eaf7ee;--radius: 8px;--maxw: 820px;--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif}@media(prefers-color-scheme:dark){:root{--bg: #0d1117;--bg-soft: #161b22;--bg-code: #161b22;--fg: #e6edf3;--fg-muted: #9198a1;--border: #30363d;--accent: #6cb6ff;--accent-soft: #11233b;--warn: #e3b341;--warn-bg: #2b2412;--tip: #3fb950;--tip-bg: #12261a}}*{box-sizing:border-box}html{scroll-behavior:smooth;font-size:16px}body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--fg);line-height:1.6;font-size:1rem;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}.container{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.site-header{border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px)}.header-inner{display:flex;align-items:center;justify-content:space-between;height:60px}.brand{font-weight:700;font-size:1.05rem;color:var(--fg);letter-spacing:-.01em}.brand-dot{color:var(--accent)}.site-nav a{color:var(--fg-muted);margin-left:1.25rem;font-size:.95rem}.site-nav a:hover{color:var(--fg)}.site-footer{flex-shrink:0;border-top:1px solid var(--border);margin-top:3rem;padding:1.25rem 0;color:var(--fg-muted);font-size:.9rem}main.container{flex:1 0 auto;padding-top:1.75rem;padding-bottom:1rem}.hero{padding:1rem 0 1.75rem;border-bottom:1px solid var(--border);margin-bottom:1.75rem}.hero h1{font-size:1.75rem;line-height:1.25;letter-spacing:-.02em;margin:0 0 .6rem}.hero p{color:var(--fg-muted);font-size:1rem;max-width:60ch}.section-title{font-size:.95rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-muted);margin:0 0 .85rem}.post-list{list-style:none;padding:0;margin:0;display:grid;gap:1rem}.post-card{border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.35rem;transition:border-color .15s ease,transform .15s ease}.post-card:hover{border-color:var(--accent)}.post-card h2{margin:.35rem 0 .45rem;font-size:1.15rem;line-height:1.3}.post-card h2 a{color:var(--fg)}.post-card>p{color:var(--fg-muted);margin:0 0 .75rem;font-size:.98rem}.post-card-meta{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.85rem;color:var(--fg-muted)}.badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:.15rem .65rem .15rem .25rem;font-size:.8rem;font-weight:600}.badge-letter{display:inline-flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:.78rem}.tier{font-size:.75rem;color:var(--fg-muted);border:1px solid var(--border);border-radius:999px;padding:.05rem .55rem}.tier-org{color:var(--warn);border-color:var(--warn)}.tag-list{list-style:none;display:flex;flex-wrap:wrap;gap:.45rem;padding:0;margin:0}.tag-list a{font-size:.82rem;color:var(--fg-muted);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:.1rem .6rem}.tag-list a:hover{color:var(--accent);border-color:var(--accent);text-decoration:none}.tag-cloud{list-style:none;display:flex;flex-wrap:wrap;gap:.6rem;padding:0}.tag-cloud a{border:1px solid var(--border);border-radius:var(--radius);padding:.35rem .7rem;color:var(--fg-muted)}.tag-count{font-size:.75rem;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:0 .4rem}.pillar-grid{list-style:none;padding:0;display:grid;gap:1rem;grid-template-columns:1fr}.pillar-card{border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem}.pillar-card>a{display:flex;align-items:center;gap:.6rem;color:var(--fg);font-weight:600}.pillar-label{flex:1}.pillar-count{font-size:.8rem;color:var(--fg-muted);font-weight:400}.pillar-card p{margin:.6rem 0 0;color:var(--fg-muted);font-size:.92rem}.post-header{padding-bottom:1.5rem;border-bottom:1px solid var(--border);margin-bottom:2rem}.post-header h1{font-size:1.65rem;line-height:1.25;letter-spacing:-.02em;margin:.5rem 0 .6rem}.post-lead{color:var(--fg-muted);font-size:1rem;margin:0 0 .65rem}.post-byline{display:flex;gap:.5rem;flex-wrap:wrap;color:var(--fg-muted);font-size:.88rem;margin-bottom:.9rem}.post-body{display:grid;grid-template-columns:1fr;gap:2rem}.toc{border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.2rem;background:var(--bg-soft);font-size:.9rem}.toc-title{margin:0 0 .5rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-muted)}.toc ul{list-style:none;padding:0;margin:0}.toc li{margin:.2rem 0}.toc-h3{padding-left:.9rem}.prose{min-width:0}.prose h2{margin-top:2rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);font-size:1.3rem}.prose h3{margin-top:1.5rem;font-size:1.08rem}.prose p,.prose li{color:var(--fg)}.prose img{max-width:100%;border:1px solid var(--border);border-radius:var(--radius)}.prose blockquote{border-left:3px solid var(--border);margin:1.5rem 0;padding:0 1rem;color:var(--fg-muted)}.prose table{border-collapse:collapse;width:100%;font-size:.92rem;display:block;overflow-x:auto}.prose th,.prose td{border:1px solid var(--border);padding:.5rem .75rem;text-align:left}.prose th{background:var(--bg-soft)}.prose :not(pre)>code{background:var(--bg-code);border:1px solid var(--border);border-radius:4px;padding:.1rem .35rem;font-family:var(--mono);font-size:.86em}.code-wrap{position:relative;margin:1.25rem 0}.code-wrap pre{margin:0;background:var(--bg-code);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;overflow-x:auto;font-family:var(--mono);font-size:.95rem;line-height:1.55}.code-wrap pre code{background:none;border:none;padding:0}.copy-btn{position:absolute;top:.5rem;right:.5rem;font-size:.72rem;padding:.2rem .55rem;border:1px solid var(--border);background:var(--bg);color:var(--fg-muted);border-radius:6px;cursor:pointer;opacity:0;transition:opacity .12s ease}.code-wrap:hover .copy-btn{opacity:1}.copy-btn:hover{color:var(--accent);border-color:var(--accent)}@media(prefers-color-scheme:dark){:root{--astro-code-color-text: #e6edf3}}.callout{border:1px solid var(--border);border-left-width:4px;border-radius:var(--radius);padding:.9rem 1.1rem;margin:1.5rem 0;background:var(--bg-soft)}.callout-title{font-weight:700;margin:0 0 .35rem;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}.callout-note{border-left-color:var(--accent)}.callout-warn{border-left-color:var(--warn);background:var(--warn-bg)}.callout-tip{border-left-color:var(--tip);background:var(--tip-bg)}.mermaid{margin:1.5rem 0;text-align:center;color:#0f172a}.mermaid svg{max-width:100%;height:auto}.mermaid .nodeLabel{font-weight:700;color:#020617}.mermaid svg .node rect,.mermaid svg .node circle,.mermaid svg .node polygon{stroke-width:1.5px}.page-header{padding-bottom:1.5rem;border-bottom:1px solid var(--border);margin-bottom:2rem}.eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;color:var(--fg-muted);margin:0 0 .4rem}@media(min-width:720px){.pillar-grid{grid-template-columns:1fr 1fr}}@media(min-width:1040px){.post-body{grid-template-columns:220px 1fr}.toc{position:sticky;top:80px;align-self:start;order:-1}}
+</style><style>.ai-recovery[data-astro-cid-hucbdjfc]{margin:1.5rem 0}.summary-card[data-astro-cid-hucbdjfc]{background:#0b1622;color:#f2f7fb;border:1px solid #2b455c;border-top:5px solid #4cc2ff;border-radius:9px;padding:1.25rem}.summary-card[data-astro-cid-hucbdjfc] p[data-astro-cid-hucbdjfc]{color:#f2f7fb;margin:0}.summary-card[data-astro-cid-hucbdjfc] .eyebrow[data-astro-cid-hucbdjfc]{color:#6fd3ff;font-size:.8rem;line-height:1.5;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.75rem}.summary-card[data-astro-cid-hucbdjfc] .summary-title[data-astro-cid-hucbdjfc]{font-size:1.5rem;font-weight:700;line-height:1.25;margin-bottom:.75rem}.summary-card[data-astro-cid-hucbdjfc] .intro[data-astro-cid-hucbdjfc]{color:#b7c9d6;margin-bottom:1.25rem}.windows[data-astro-cid-hucbdjfc]{display:grid;grid-template-columns:1fr;gap:1rem}.window[data-astro-cid-hucbdjfc]{min-width:0;background:#12273a;border:1px solid #2b455c;border-radius:8px;padding:1rem}.committed[data-astro-cid-hucbdjfc]{border-top:5px solid #34d8c0}.uncommitted[data-astro-cid-hucbdjfc]{border-top:5px solid #ffb86b}.summary-card[data-astro-cid-hucbdjfc] .window-label[data-astro-cid-hucbdjfc]{color:#b7c9d6;text-transform:uppercase;letter-spacing:.06em;font-size:.8rem;margin-bottom:.4rem}.summary-card[data-astro-cid-hucbdjfc] .window-title[data-astro-cid-hucbdjfc]{font-size:1.15rem;font-weight:700;line-height:1.35}.committed[data-astro-cid-hucbdjfc] .window-title[data-astro-cid-hucbdjfc],.committed[data-astro-cid-hucbdjfc] .result[data-astro-cid-hucbdjfc] strong[data-astro-cid-hucbdjfc]{color:#7de8d3}.uncommitted[data-astro-cid-hucbdjfc] .window-title[data-astro-cid-hucbdjfc],.uncommitted[data-astro-cid-hucbdjfc] .result[data-astro-cid-hucbdjfc] strong[data-astro-cid-hucbdjfc]{color:#ffc78a}.window[data-astro-cid-hucbdjfc] ol[data-astro-cid-hucbdjfc]{list-style:none;margin:1rem 0;padding:0}.window[data-astro-cid-hucbdjfc] li[data-astro-cid-hucbdjfc]{color:#d7e4ec;font-size:1rem;line-height:1.5}.window[data-astro-cid-hucbdjfc] li[data-astro-cid-hucbdjfc]:not(:last-child):after{content:"↓";display:block;color:#b7c9d6;line-height:1.5}.summary-card[data-astro-cid-hucbdjfc] .result[data-astro-cid-hucbdjfc]{border-top:1px solid #2b455c;padding-top:.75rem;font-weight:700}.result[data-astro-cid-hucbdjfc] strong[data-astro-cid-hucbdjfc]{font-size:2.4rem;line-height:1;margin-right:.35rem}.summary-card[data-astro-cid-hucbdjfc] .outcome[data-astro-cid-hucbdjfc]{margin-top:.75rem;color:#b7c9d6}.summary-card[data-astro-cid-hucbdjfc] .test-result[data-astro-cid-hucbdjfc]{margin-top:1.25rem;padding-top:1rem;border-top:1px solid #2b455c;color:#b7c9d6}.test-result[data-astro-cid-hucbdjfc] strong[data-astro-cid-hucbdjfc]{color:#f2f7fb}figcaption[data-astro-cid-hucbdjfc]{font-size:.85rem;color:var(--fg-muted);margin-top:.6rem}@media(min-width:720px)and (max-width:1039px),(min-width:1500px){.windows[data-astro-cid-hucbdjfc]{grid-template-columns:1fr 1fr}}
+</style></head> <body> <header class="site-header"> <div class="container header-inner"> <a class="brand" href="https://gcp-architect-blog.web.app/">Koate Kpai<span class="brand-dot">.</span></a> <nav class="site-nav"> <a href="https://gcp-architect-blog.web.app/categories/">Pillars</a> <a href="https://gcp-architect-blog.web.app/tags/">Tags</a> <a href="https://gcp-architect-blog.web.app/about/">About</a> </nav> </div> </header> <main class="container">  <article class="post"> <header class="post-header"> <div class="post-card-meta"> <a class="badge" href="https://gcp-architect-blog.web.app/categories/sre-reliability/"><span class="badge-letter">B</span><span>SRE / Reliability</span></a> <span class="tier" title="Local tests · reference implementation"> Local tests · reference implementation </span>  </div> <h1>Why an AI Task Can Run Twice—and How I Tested Recovery</h1> <p class="post-lead">Two local failure tests show why a committed result prevents a repeated model call, while failure before the database commit can still invoke the model twice.</p> <div class="post-byline"> <time datetime="2026-11-08T00:00:00.000Z">2026-11-08</time>  <span>· 7 min read</span> </div> <ul class="tag-list" aria-label="Tags"><li><a href="https://gcp-architect-blog.web.app/tags/azure/">#azure</a></li><li><a href="https://gcp-architect-blog.web.app/tags/python/">#python</a></li><li><a href="https://gcp-architect-blog.web.app/tags/idempotency/">#idempotency</a></li><li><a href="https://gcp-architect-blog.web.app/tags/queues/">#queues</a></li><li><a href="https://gcp-architect-blog.web.app/tags/reliability/">#reliability</a></li><li><a href="https://gcp-architect-blog.web.app/tags/outbox/">#outbox</a></li><li><a href="https://gcp-architect-blog.web.app/tags/at-least-once/">#at-least-once</a></li></ul> </header> <div class="post-body"> <nav class="toc" aria-label="Table of contents"><p class="toc-title">Contents</p><ul><li class="toc-h2"><a href="#the-everyday-version">The everyday version</a></li><li class="toc-h2"><a href="#the-system-i-tested">The system I tested</a></li><li class="toc-h2"><a href="#two-failures-two-outcomes">Two failures, two outcomes</a></li><li class="toc-h2"><a href="#what-idempotency-protects">What idempotency protects</a></li><li class="toc-h2"><a href="#ownership-needs-an-expiry-and-a-fence">Ownership needs an expiry and a fence</a></li><li class="toc-h2"><a href="#why-the-outbox-does-not-close-this-window">Why the outbox does not close this window</a></li><li class="toc-h2"><a href="#reproduce-the-two-failures">Reproduce the two failures</a></li><li class="toc-h2"><a href="#evidence-and-limits">Evidence and limits</a></li></ul></nav> <div class="prose">  <p>An AI request can finish successfully and still trigger a second model call.</p>
+<p>The first worker gets the answer, fails before committing it, and leaves an unfinished
+task behind. When another worker picks up that task, it has no durable result to
+reuse. Retrying can repeat the model invocation—and, with a paid provider, may
+incur another charge.</p>
+<p>I tested two failure windows in a local reference implementation. The difference
+was one database commit: <strong>a committed result let the worker skip the model; a
+provider response that had not been committed did not.</strong></p>
+<p>The tests use real PostgreSQL, an in-memory queue double and a deterministic model
+stub. This is code evidence for an Azure worker design, with no paid inference
+or live Azure recovery claim. The <a href="#reproduce-the-two-failures">source download</a>
+includes both tests.</p>
+
+<figure class="ai-recovery" aria-labelledby="ai-recovery-title" data-astro-cid-hucbdjfc> <div class="summary-card" data-astro-cid-hucbdjfc> <p class="eyebrow" data-astro-cid-hucbdjfc>Local AI worker lab · PostgreSQL · Queue</p> <p class="summary-title" id="ai-recovery-title" data-astro-cid-hucbdjfc>Two failure windows, one commit apart.</p> <p class="intro" data-astro-cid-hucbdjfc>The difference is whether the result is already durable.</p> <div class="windows" data-astro-cid-hucbdjfc> <section class="window committed" aria-label="Result committed first" data-astro-cid-hucbdjfc> <p class="window-label" data-astro-cid-hucbdjfc>Window 1</p> <p class="window-title" data-astro-cid-hucbdjfc>Result committed first</p> <ol data-astro-cid-hucbdjfc> <li data-astro-cid-hucbdjfc>Model returns</li> <li data-astro-cid-hucbdjfc>Result commit succeeds</li> <li data-astro-cid-hucbdjfc>Queue acknowledgement fails</li> <li data-astro-cid-hucbdjfc>Redelivery finds a completed task</li> </ol> <p class="result" data-astro-cid-hucbdjfc><strong data-astro-cid-hucbdjfc>1</strong> model call</p> <p class="outcome" data-astro-cid-hucbdjfc>The stored result is reused.</p> </section> <section class="window uncommitted" aria-label="Result commit fails" data-astro-cid-hucbdjfc> <p class="window-label" data-astro-cid-hucbdjfc>Window 2</p> <p class="window-title" data-astro-cid-hucbdjfc>Failure before completion commit</p> <ol data-astro-cid-hucbdjfc> <li data-astro-cid-hucbdjfc>Model returns</li> <li data-astro-cid-hucbdjfc>Result commit fails</li> <li data-astro-cid-hucbdjfc>Claim expires; message redelivers</li> <li data-astro-cid-hucbdjfc>No stored result to reuse</li> </ol> <p class="result" data-astro-cid-hucbdjfc><strong data-astro-cid-hucbdjfc>2</strong> model calls</p> <p class="outcome" data-astro-cid-hucbdjfc>The task recovers; the model runs again.</p> </section> </div> <p class="test-result" data-astro-cid-hucbdjfc><strong data-astro-cid-hucbdjfc>47 passed · 3 skipped</strong><br data-astro-cid-hucbdjfc>Both failure-window tests passed: one asserts 1 call, the other asserts 2.</p> </div> <figcaption data-astro-cid-hucbdjfc>
+Illustrated summary · local tests, 25 October 2026.
+<a href="https://gcp-architect-blog.web.app/images/why-an-ai-task-can-run-twice/opening-summary.png" data-astro-cid-hucbdjfc>View the full-size graphic.</a> </figcaption> </figure> 
+<h2 id="the-everyday-version">The everyday version</h2>
+<p>Imagine a kitchen that receives orders on paper tickets. The cook finishes an
+order, but the completion mark is lost before it is recorded. The next shift
+sees an open ticket and makes the order again.</p>
+<p>Now change one detail: the ticket is marked done, but nobody clears it from the
+rack. The next shift sees the completion mark and skips the work. The ticket
+returned; the order does not need cooking again.</p>
+<p>The missing fact is not whether someone received the ticket. It is whether the
+work already happened. In this application, the queue carries the ticket and
+PostgreSQL holds the durable completion record.</p>
+<h2 id="the-system-i-tested">The system I tested</h2>
+<ol>
+<li><strong>Accept:</strong> the API writes the task and its outbox intent in one PostgreSQL transaction.</li>
+<li><strong>Publish:</strong> the publisher sends a notification to the queue.</li>
+<li><strong>Claim:</strong> the worker locks the task row with <code>SELECT ... FOR UPDATE</code> and records its claim.</li>
+<li><strong>Invoke:</strong> the worker calls the model after the claim transaction commits.</li>
+<li><strong>Complete:</strong> the worker commits the result only if its claim token and lease are still valid.</li>
+<li><strong>Acknowledge:</strong> the worker deletes the processed queue message.</li>
+</ol>
+<p>For Azure Storage Queue, retrieving a message with <code>Get Messages</code> makes it
+invisible for the visibility timeout; it does not delete it. An undeleted
+message can become visible again. Microsoft’s
+<a href="https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages">Get Messages documentation</a>
+describes that lifecycle. The local queue double lets the tests request
+redelivery explicitly; it does not reproduce that timing.</p>
+<h2 id="two-failures-two-outcomes">Two failures, two outcomes</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Failure point</th><th>Durable state</th><th>Outcome in the local test</th></tr></thead><tbody><tr><td>Result committed; acknowledgement fails</td><td>Task is completed and result exists</td><td>Redelivery is acknowledged without another model call</td></tr><tr><td>Model returns; result commit fails</td><td>Task has an unfinished claim and no result</td><td>After claim expiry, redelivery invokes the model again</td></tr></tbody></table>
+<p>The first test, <a href="https://gcp-architect-blog.web.app/evidence/why-an-ai-task-can-run-twice/tests/test_recovery.py">the post-commit acknowledgement-failure test</a>, makes queue
+acknowledgement raise an error after completion. It checks that the task is
+already completed, redelivers the notification and asserts <code>ai.calls == 1</code>.</p>
+<p>The second test, <a href="https://gcp-architect-blog.web.app/evidence/why-an-ai-task-can-run-twice/tests/test_recovery.py">the pre-commit failure test</a>, forces the earlier failure.
+Here is the actual test from that same source file:</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="python"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">async</span><span style="color:#D73A49;--shiki-dark:#F97583"> def</span><span style="color:#6F42C1;--shiki-dark:#B392F0"> test_provider_response_before_commit_can_repeat</span><span style="color:#24292E;--shiki-dark:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    repo, publisher, worker, queue, ai</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    task </span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#D73A49;--shiki-dark:#F97583"> await</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> submit(repo, publisher)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    original </span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> repo.finish</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    async</span><span style="color:#D73A49;--shiki-dark:#F97583"> def</span><span style="color:#6F42C1;--shiki-dark:#B392F0"> crash</span><span style="color:#24292E;--shiki-dark:#E1E4E8">(</span><span style="color:#D73A49;--shiki-dark:#F97583">*</span><span style="color:#24292E;--shiki-dark:#E1E4E8">args, </span><span style="color:#D73A49;--shiki-dark:#F97583">**</span><span style="color:#24292E;--shiki-dark:#E1E4E8">kwargs):</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">        raise</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> OSError</span><span style="color:#24292E;--shiki-dark:#E1E4E8">(</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&quot;crash between provider response and commit&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    repo.finish </span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> crash</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    with</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> pytest.raises(</span><span style="color:#005CC5;--shiki-dark:#79B8FF">OSError</span><span style="color:#24292E;--shiki-dark:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">        await</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> worker.one()</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    repo.finish </span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> original</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    async</span><span style="color:#D73A49;--shiki-dark:#F97583"> with</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> repo.db.transaction() </span><span style="color:#D73A49;--shiki-dark:#F97583">as</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> conn:</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">        await</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> conn.execute(</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#9ECBFF">            &quot;UPDATE tasks SET claim_until=now()-interval &#39;1 s&#39; WHERE id=$1&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">            task[</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&quot;id&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">        )</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">    queue.redeliver()</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    await</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> worker.one()</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    assert</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> ai.calls </span><span style="color:#D73A49;--shiki-dark:#F97583">==</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> 2</span><span style="color:#6A737D;--shiki-dark:#6A737D">  # Deliberate exactly-once limitation, not hidden.</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">    assert</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> (</span><span style="color:#D73A49;--shiki-dark:#F97583">await</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> repo.get(</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&quot;tenant-a&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, task[</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&quot;id&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">]))[</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&quot;status&quot;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">] </span><span style="color:#D73A49;--shiki-dark:#F97583">==</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> &quot;completed&quot;</span></span></code></pre>
+<p>This injects an <code>OSError</code> at the repository completion boundary. It is not an OS
+process kill. The test then expires the database claim explicitly and asks the
+queue double to redeliver. Those shortcuts make the failure window reproducible
+without waiting for a real broker or killing a container.</p>
+<p>The two model calls are the expected result. The second attempt completes the
+task, but it cannot recover the first answer because the first attempt never
+stored it. This test exercises recovery of the task while exposing the limit on
+deduplicating external work.</p>
+<h2 id="what-idempotency-protects">What idempotency protects</h2>
+<p>Idempotency means repeating an operation has the same intended effect. The
+operation matters: accepting a request, committing a result and invoking an
+external provider have different boundaries.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Duplicate</th><th>Guard in this design</th><th>Remaining limit</th></tr></thead><tbody><tr><td>Client retries a submission</td><td>Tenant-scoped idempotency key, payload hash and database uniqueness</td><td>Does not make worker execution happen once</td></tr><tr><td>Notification returns after completion</td><td>Terminal-status check</td><td>Requires a committed completion record</td></tr><tr><td>Workers compete for unfinished work</td><td>Row lock, expiring claim and per-attempt claim token</td><td>Cannot undo an external call that already started</td></tr><tr><td>Provider receives a repeated request</td><td>Provider-supported deduplication, where documented</td><td>Depends on that provider’s contract and retention window</td></tr></tbody></table>
+<p>Microsoft’s <a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/idempotent-consumer">Idempotent Consumer pattern</a>
+also distinguishes consumer deduplication from protection of downstream calls.
+This lab does not demonstrate provider-side deduplication or make a billing claim.</p>
+<h2 id="ownership-needs-an-expiry-and-a-fence">Ownership needs an expiry and a fence</h2>
+<p>The repository locks the task row with <code>SELECT ... FOR UPDATE</code> before deciding
+whether to claim it. If a live claim already exists, the worker delays processing
+until the claim permits another attempt. It calls the queue adapter’s <code>nack</code>
+with the calculated delay rather than acknowledging unfinished work as completed.
+The in-memory test double requeues immediately; it does not reproduce Azure timing.</p>
+<p>Each new claim gets a token. Completion checks that the token still belongs to
+this attempt and the lease has not expired. This predicate is taken from
+<code>Repository.finish</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">WHERE</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> id</span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8">$</span><span style="color:#005CC5;--shiki-dark:#79B8FF">1</span><span style="color:#D73A49;--shiki-dark:#F97583"> AND</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> claim_token</span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8">$</span><span style="color:#005CC5;--shiki-dark:#79B8FF">2</span><span style="color:#D73A49;--shiki-dark:#F97583"> AND</span><span style="color:#D73A49;--shiki-dark:#F97583"> status=</span><span style="color:#032F62;--shiki-dark:#9ECBFF">&#39;running&#39;</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">AND</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> claim_until</span><span style="color:#D73A49;--shiki-dark:#F97583">&gt;</span><span style="color:#24292E;--shiki-dark:#E1E4E8">clock_timestamp() RETURNING </span><span style="color:#D73A49;--shiki-dark:#F97583">*</span></span></code></pre>
+<p>If a worker resumes after losing its claim, that condition prevents it from
+overwriting the new owner’s result. If a worker dies, the claim eventually
+expires so another attempt can proceed. Neither mechanism reverses a model call
+already made by the old owner. The row lock protects the short claim transaction,
+not the whole model invocation. A claim token fences later database writes; it
+does not guarantee that an old worker stops external work immediately.</p>
+<p>The queue visibility timeout and the database claim are separate clocks. A
+redelivery can arrive while the database still considers another attempt active;
+the worker must defer it until the claim permits another attempt.</p>
+<h2 id="why-the-outbox-does-not-close-this-window">Why the outbox does not close this window</h2>
+<p>The transactional outbox commits task acceptance and the intent to publish in
+one PostgreSQL transaction. A publisher can retry notification delivery after a
+queue outage without losing that intent. This closes the acceptance-to-publication
+gap; it cannot put an external model call and a local result update in one transaction.</p>
+<p>The publisher can still send the same notification again if it fails after
+sending but before recording publication. The worker therefore still needs its
+terminal check and ownership guard. The outbox does not make the provider call
+and the PostgreSQL result commit one transaction.</p>
+<p>The next article will examine the outbox’s acceptance and publication boundaries.</p>
+<h2 id="reproduce-the-two-failures">Reproduce the two failures</h2>
+<p>Download the <a href="https://gcp-architect-blog.web.app/evidence/why-an-ai-task-can-run-twice/azure-ai-ops-lab-source.zip">reference source ZIP</a>.
+It includes <code>PUBLICATION-NOTES.md</code>, dependency locks, migrations and the tests.
+The deployment files are a learning reference, with known readiness, notification
+and release issues documented in <code>PUBLICATION-NOTES.md</code>. Read those notes before
+using them: the Azure deployment path remains unverified and is not production-ready.</p>
+<p>Use Python 3.14 and a separate disposable PostgreSQL database whose name ends in
+<code>_test</code>. The suite truncates its task and intent tables. From the extracted
+<code>azure-ai-ops-lab</code> directory, install <code>requirements-dev.txt</code> in a virtual
+environment, set <code>TEST_DATABASE_URL</code>, set <code>MIGRATION_DATABASE_URL</code> to the same URL,
+and migrate with <code>python -m alembic upgrade head</code>.</p>
+<p>Run the two focused tests:</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">python</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> -m</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> pytest</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> -v</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> tests/test_recovery.py::test_post_commit_ack_failure_skips_second_ai</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> tests/test_recovery.py::test_provider_response_before_commit_can_repeat</span></span></code></pre>
+<p>Both should pass. Read their assertions: the first expects one model invocation;
+the second expects two. The queue fixture is a policy double even when an Azurite
+service is available for the separate integration tests.</p>
+<h2 id="evidence-and-limits">Evidence and limits</h2>
+<p>On 25 October 2026, the suite finished with <strong>47 passed and 3 skipped</strong>. Both
+failure-window tests passed. The skipped checks were the two Azurite integration
+tests (no emulator configured) and the POSIX SIGTERM process test on Windows.</p>
+<p>The publication run is recorded in the <a href="https://gcp-architect-blog.web.app/evidence/why-an-ai-task-can-run-twice/test-results.txt">test output</a>
+and <a href="https://gcp-architect-blog.web.app/evidence/why-an-ai-task-can-run-twice/manifest.json">artifact manifest</a>.
+The manifest identifies the source files and download by SHA-256.</p>
+<p>This local experiment does not measure Azure queue timing, managed identity,
+Container Apps recovery, real model latency or cloud costs. Historical authoring
+checks are recorded separately in the source’s <code>docs/VALIDATION.md</code>; they are not
+substitutes for the attached publication run.</p>
+<p>The useful result is specific: after a committed completion, a duplicate
+notification can be absorbed without calling the model again. Before that
+commit, recovery can require another invocation. When evaluating an
+“idempotent AI worker,” ask which side of that commit its guarantee covers.</p>  </div> </div> </article>  </main> <footer class="site-footer"> <div class="container"> <p>
+Reference GCP architecture patterns, backed by working code.
+<a href="https://gcp-architect-blog.web.app/rss.xml">RSS</a> </p> </div> </footer> </body></html> 
