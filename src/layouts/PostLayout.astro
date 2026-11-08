@@ -42,8 +42,8 @@ const mins = readingTime(post.body);
     <header class="post-header">
       <div class="post-card-meta">
         <CategoryBadge category={category} />
-        <span class="tier" title={TIER_LABEL[proofTier].desc}>
-          Proof tier {proofTier} · {TIER_LABEL[proofTier].label}
+        <span class="tier" title={post.data.evidenceLabel ?? TIER_LABEL[proofTier].desc}>
+          {post.data.evidenceLabel ?? `Proof tier ${proofTier} · ${TIER_LABEL[proofTier].label}`}
         </span>
         {requiresOrg && <span class="tier tier-org">Org required</span>}
       </div>

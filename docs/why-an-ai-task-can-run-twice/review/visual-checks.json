@@ -1,0 +1,46 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "summaryPanels": 2,
+    "summaryTextSize": "16px",
+    "summaryTextColor": "rgb(215, 228, 236)",
+    "tables": 2,
+    "codeBlocks": 3,
+    "date": "2026-11-08"
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "summaryPanels": 2,
+    "summaryTextSize": "16px",
+    "summaryTextColor": "rgb(215, 228, 236)",
+    "tables": 2,
+    "codeBlocks": 3,
+    "date": "2026-11-08"
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "summaryPanels": 2,
+    "summaryTextSize": "16px",
+    "summaryTextColor": "rgb(215, 228, 236)",
+    "tables": 2,
+    "codeBlocks": 3,
+    "date": "2026-11-08"
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "summaryPanels": 2,
+    "summaryTextSize": "16px",
+    "summaryTextColor": "rgb(215, 228, 236)",
+    "tables": 2,
+    "codeBlocks": 3,
+    "date": "2026-11-08"
+  }
+]

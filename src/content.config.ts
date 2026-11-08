@@ -32,6 +32,7 @@ const posts = defineCollection({
 
     // Proof tier: 1 = live run, 2 = code proof, 3 = reference
     proofTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(3),
+    evidenceLabel: z.string().min(1).max(80).optional(),
     requiresOrg: z.boolean().default(false),
 
     // Assets / links

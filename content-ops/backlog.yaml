@@ -243,14 +243,16 @@ topics:
     title: "Why an AI Task Can Run Twice—and How I Tested Recovery"
     category: "sre-reliability"
     cloud: "azure"
-    status: "planned"
+    status: "published"
+    publishedAs: "src/content/posts/sre-reliability/005-why-an-ai-task-can-run-twice.mdx"
+    publishedOn: 2026-11-08
     impact: 5
     demand: 5
     confidence: 4
     effort: 4
     proofTier: 2
     requiresOrg: false
-    note: "Draft in src/content/posts/sre-reliability/005-why-an-ai-task-can-run-twice.mdx; 49 local tests + local E2E, Azure pending."
+    note: "Release date 2026-11-08. Evidence run 2026-10-25: 47 passed, 3 skipped. Local PostgreSQL, queue double and model stub; live Azure and paid inference unverified."
 
   - id: "023"
     title: "Accepting work when the queue is unavailable: PostgreSQL, transactions and the outbox"
