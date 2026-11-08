@@ -279,3 +279,16 @@ topics:
     proofTier: 2
     requiresOrg: false
     note: "Draft in src/content/posts/sre-reliability/007-operating-ai-worker-on-azure.mdx; publish only after live Azure checks and measured costs."
+
+  - id: "025"
+    title: "One Security Group Rule, 150 Terraform Changes"
+    category: "platform-engineering-idp"
+    cloud: "aws"
+    status: "planned"
+    impact: 4
+    demand: 5
+    confidence: 4
+    effort: 2
+    proofTier: 3
+    requiresOrg: false
+    note: "Publication-ready source: src/content/posts/platform-engineering-idp/025-terraform-unexpected-changes.mdx. Illustrative scenario and engineering guidance; no measured 150-resource incident claimed. Awaiting deployment."

@@ -1,0 +1,50 @@
+[
+  {
+    "width": 1440,
+    "colorScheme": "light",
+    "overflow": false,
+    "steps": 4,
+    "codeBlocks": 3,
+    "subtitle": "The approval prompt is only the beginning.",
+    "visualText": "16px",
+    "columns": "482.812px",
+    "brokenAnchors": 0,
+    "ciCorrection": true
+  },
+  {
+    "width": 1440,
+    "colorScheme": "dark",
+    "overflow": false,
+    "steps": 4,
+    "codeBlocks": 3,
+    "subtitle": "The approval prompt is only the beginning.",
+    "visualText": "16px",
+    "columns": "482.812px",
+    "brokenAnchors": 0,
+    "ciCorrection": true
+  },
+  {
+    "width": 390,
+    "colorScheme": "light",
+    "overflow": false,
+    "steps": 4,
+    "codeBlocks": 3,
+    "subtitle": "The approval prompt is only the beginning.",
+    "visualText": "16px",
+    "columns": "316px",
+    "brokenAnchors": 0,
+    "ciCorrection": true
+  },
+  {
+    "width": 390,
+    "colorScheme": "dark",
+    "overflow": false,
+    "steps": 4,
+    "codeBlocks": 3,
+    "subtitle": "The approval prompt is only the beginning.",
+    "visualText": "16px",
+    "columns": "316px",
+    "brokenAnchors": 0,
+    "ciCorrection": true
+  }
+]

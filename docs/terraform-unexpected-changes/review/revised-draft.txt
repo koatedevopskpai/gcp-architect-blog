@@ -1,0 +1,153 @@
+# One Security Group Rule, 150 Terraform Changes
+
+The approval prompt is only the beginning.
+
+Imagine you change one AWS security group rule. Terraform proposes changes to 150 resources.
+
+Would I apply it? Only after I could explain the difference between the intended change and the proposed deployment.
+
+The approval prompt gives you a chance to stop. It does not establish that the changes are safe. Removing `-auto-approve` still leaves an engineer able to skim the plan, type `yes`, and trigger an incident.
+
+The useful question is: **why are these resources changing, and what will those changes affect?**
+
+Illustrated process: investigate the scope → review a saved plan → apply the approved artifact → verify the service.
+
+## Terraform does not deploy your Git diff
+
+
+Terraform does not interpret a one-line code change as an instruction to modify only one resource. A normal plan evaluates the selected configuration, its inputs, state, provider behaviour, and the managed infrastructure discovered during refresh. It then determines the operations needed to reconcile them. [HashiCorp’s explanation of planning and refresh](https://developer.hashicorp.com/terraform/tutorials/state/refresh)
+
+Your security group edit could therefore arrive alongside:
+
+- Infrastructure drift introduced through the AWS console.
+- Previously merged changes that have not been deployed.
+- Different pipeline variables or provider configuration.
+- A provider or module upgrade.
+- Resource address changes from a refactor.
+- A shared input affecting many resources.
+
+“I only changed one rule” describes the engineer’s intention. The plan describes the proposed deployment.
+
+When those disagree, the difference needs an explanation.
+
+## First, check what “150 resources changing” actually means
+
+State refresh messages and read operations do not, by themselves, mean Terraform proposes modifying those resources.
+
+Start with the action summary, then inspect the resource-level changes.
+
+Even when 150 resources really are changing, the number alone does not establish the risk. A reviewed tag update across 150 resources may be less disruptive than one database replacement.
+
+I would assess:
+
+- Which resources change?
+- Which attributes change?
+- Are operations updates, replacements, or deletions?
+- Which services depend on those resources?
+- Can the proposed operations interrupt traffic or expose access?
+
+An in-place update deserves scrutiny too. Changing a security group rule, route, or IAM policy can cause an outage without replacing a single resource.
+
+## Investigate before trying to make the plan smaller
+
+My first checks would establish the execution context: AWS account, assumed role, regions, provider aliases, Terraform workspace, backend state location, root module, commit, and variable inputs.
+
+Next, I would compare the current configuration against the **last successful deployment**, rather than looking only at the latest commit.
+
+That distinction matters. Your latest commit may contain one rule change while the deployment includes several unapplied commits.
+
+I would also inspect dependency changes carefully. Terraform’s `.terraform.lock.hcl` records provider selections; it does not lock remote module versions. Module versions and Git references need deliberate control separately. [HashiCorp dependency lock documentation](https://developer.hashicorp.com/terraform/language/files/dependency-lock)
+
+An urgent firewall change should not quietly become a provider upgrade and module migration.
+
+Then I would look for patterns. The same tag changing everywhere suggests a shared setting. Widespread destruction and recreation may indicate address changes. Numerous replacements tied to one attribute suggest a common upstream cause.
+
+The objective is to establish a causal explanation for every group of changes.
+
+
+### A worked example: the shared tag you did not edit
+
+Imagine the last successful deployment used `CostCentre = "platform"`. Since then, a separate commit has changed that shared value to `CostCentre = "engineering"`, but nobody has deployed it. Your security group edit is the next change through the pipeline.
+
+If that shared tag is applied to many resources, the plan can include those tag updates alongside your rule change. Your latest Git diff contains the rule; the deployment also includes the earlier, unapplied tag change.
+
+This is an illustrative explanation, not a captured 150-resource plan. In a real review, I would confirm the last successfully deployed commit and compare it with the commit being planned. For example, use `git log <last-deployed-commit>..<planned-commit>` and `git diff <last-deployed-commit> <planned-commit>` with the recorded commit IDs, then inspect the pipeline's recorded variable inputs. Git history alone cannot explain infrastructure drift or inputs supplied outside the repository.
+
+I would then check that the affected resources all show the expected tag change. A replacement or unrelated permission change would need its own explanation.
+
+The outcome might be to approve both changes together or separate them into deliberate deployments. Either way, the scope is now a decision we can explain.
+
+## One security group rule can still have a large impact
+
+Suppose the investigation removes the unexpected changes, leaving exactly one rule update.
+
+That is progress, but it is not sufficient approval evidence.
+
+A single security group can protect many workloads. One incorrect rule can interrupt application traffic, block health checks, disconnect a database, or expose an administrative endpoint.
+
+I would verify the protocol, port range, source or destination, IPv4 and IPv6 scope, and the workloads using the group. I would also examine whether Terraform proposes changing a rule, replacing a rule, or replacing the security group itself.
+
+The unit Terraform manages is not necessarily the unit the business experiences. One resource change can affect an entire service.
+
+## Review and apply the same plan
+
+There is a practical weakness in this common workflow:
+
+```bash
+terraform plan
+terraform apply -auto-approve
+```
+
+The second command generates a **new plan**. It does not automatically execute the plan previously reviewed. [Terraform apply documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+
+For a CLI-based production workflow, I prefer:
+
+```bash
+terraform plan -var-file=prod.tfvars -out=tfplan
+terraform show -no-color tfplan
+```
+
+After the appropriate review and approval:
+
+```bash
+terraform apply tfplan
+```
+
+Passing a saved plan is itself treated as approval, so Terraform does not display another confirmation prompt. The approval gate must occur before execution and be tied to that specific artifact.
+
+Protect the artifact as well: saved plans can contain sensitive values even when terminal output hides them. [Terraform plan documentation](https://developer.hashicorp.com/terraform/cli/commands/plan)
+
+This workflow strengthens the connection between review and execution. It does not freeze AWS or guarantee that the deployment will succeed.
+
+In CI, `terraform plan -detailed-exitcode` distinguishes no changes (0), an error (1), and changes present (2). Exit code 2 is a successful plan with changes, not a deployment failure. If your CI runner treats every non-zero exit as a failure, explicitly handle 2 as success with changes while preserving 1 as an error.
+
+To block unexpected change categories, a separate policy check must inspect `terraform show -json tfplan` and enforce your rules before approval. Protect that JSON output as sensitive material, just like the saved plan. [Plan exit codes](https://developer.hashicorp.com/terraform/cli/commands/plan#other-options) · [JSON output](https://developer.hashicorp.com/terraform/cli/commands/show#json-output)
+
+## Do not hide the unexplained changes
+
+Under deadline pressure, `-target`, `-refresh=false`, and broad `ignore_changes` settings can look attractive.
+
+Each has legitimate uses. None establishes why the original plan was unexpected.
+
+HashiCorp explicitly recommends resource targeting for exceptional circumstances, rather than routine deployments, because it can leave changes outside the selected scope undetected. [Resource targeting guidance](https://developer.hashicorp.com/terraform/cli/commands/plan)
+
+A smaller plan is useful when it reflects a correctly scoped change. It is misleading when we achieve it by excluding the evidence we need to investigate.
+
+Recovery also needs realistic expectations. Terraform does not automatically roll back a partially completed apply, and restoring a state backup does not reverse AWS operations. After a failure, inspect which operations succeeded, reconcile the infrastructure and state, and generate a fresh plan before proceeding. [Terraform apply failure behaviour](https://developer.hashicorp.com/terraform/cli/commands/apply)
+
+## My production standard
+
+I support automated Terraform execution. Production infrastructure benefits from reproducible pipelines, consistent controls, and less dependence on individual laptops.
+
+But automation should execute understood changes.
+
+I want a reviewed plan tied to the intended commit and environment, controlled dependencies and inputs, approval proportional to risk, serialised deployments per state, and service verification after execution.
+
+For the security group change, a successful Terraform exit code is only part of the evidence. Intended connectivity should work, and unintended access should remain blocked.
+
+Review should establish **why the changes are necessary, what they affect, and how we will verify the outcome**.
+
+If one intended rule change produces 150 unexplained resource changes, the deployment is not ready. Once the scope is understood and justified, we can make an informed decision about applying it.
+
+
+*Inspired by [A. Suhayb’s LinkedIn post](https://www.linkedin.com/posts/a-suhayb_terraform-devops-aws-share-7519747275796086784-iv24/) about unexpected Terraform changes and `terraform apply -auto-approve`. This article uses an illustrative scenario to discuss deployment review; it does not report a measured 150-resource incident.*
