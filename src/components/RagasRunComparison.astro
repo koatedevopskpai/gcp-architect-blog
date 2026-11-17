@@ -1,0 +1,139 @@
+<figure class="ragas-compare" aria-labelledby="ragas-compare-title">
+  <div class="summary-card">
+    <p class="eyebrow">LOCAL RAGAS RUNS - LIVE PROVIDER APIs - 17 November 2026</p>
+    <p class="summary-title" id="ragas-compare-title">Same answer, two historical scores, two traced runs</p>
+    <p class="intro">The retention answer is character-identical to its context in every run.</p>
+
+    <div class="runs">
+      <section class="run historical" aria-label="Historical receipts, no trace retained">
+        <p class="run-label">Historical receipts</p>
+        <p class="run-score">0.3333</p>
+        <p class="run-meta">00:54 UTC · mean 0.8889</p>
+        <p class="run-score second-score">0.6667</p>
+        <p class="run-meta">02:01 UTC · mean 0.9444</p>
+        <p class="badge warn">No claim-level trace retained</p>
+      </section>
+
+      <section class="run traced" aria-label="Informed replication with captured traces">
+        <p class="run-label">Informed replication</p>
+        <p class="run-score">0.3333</p>
+        <p class="run-meta">Run A · mean 0.8889</p>
+        <p class="run-score second-score">0.3333</p>
+        <p class="run-meta">Run B · mean 0.8889</p>
+        <p class="badge good">Trace captured</p>
+        <ul class="verdicts" aria-label="Judge verdicts for the three extracted statements">
+          <li><span class="v no">0</span> “Customer data must be deleted.”</li>
+          <li><span class="v yes">1</span> “… within 30 days.”</li>
+          <li><span class="v no">0</span> “… after contract termination.”</li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="note">One supported statement out of three. The trace explains the arithmetic, not the
+      historical difference.</p>
+  </div>
+  <figcaption>
+    Illustrated summary. Left: two surviving historical receipts with identical recorded inputs and no
+    statement-level trace. Right: two preregistered runs that scored the same answer 0.3333 and kept the
+    judge's statements and verdicts. The experiment was informed by the published numbers, not blind.
+  </figcaption>
+</figure>
+
+<style>
+  .ragas-compare { margin: 1.5rem 0; }
+  .summary-card {
+    background: #0b1622;
+    color: #f2f7fb;
+    border: 1px solid #2b455c;
+    border-top: 5px solid #4cc2ff;
+    border-radius: 9px;
+    padding: 1.25rem;
+  }
+  .summary-card p { margin: 0; color: #f2f7fb; }
+  .summary-card .eyebrow {
+    color: #6fd3ff;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    margin-bottom: 0.75rem;
+  }
+  .summary-card .summary-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 0.4rem;
+  }
+  .summary-card .intro { color: #b7c9d6; margin-bottom: 1.15rem; line-height: 1.45; }
+  .runs { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .run {
+    min-width: 0;
+    background: #12273a;
+    border: 1px solid #2b455c;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .historical { border-top: 5px solid #ffb86b; }
+  .traced { border-top: 5px solid #4cc2ff; }
+  .summary-card .run-label {
+    color: #b7c9d6;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+  }
+  .summary-card .run-score {
+    font-size: 2.3rem;
+    font-weight: 700;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .historical .run-score { color: #ffc78a; }
+  .traced .run-score { color: #7dd3ff; }
+  .summary-card .second-score { margin-top: 0.6rem; }
+  .summary-card .run-meta { color: #b7c9d6; font-size: 0.9rem; margin-top: 0.15rem; }
+  .badge {
+    display: inline-block;
+    margin-top: 0.85rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.82rem;
+    line-height: 1.3;
+  }
+  .badge.warn { background: #3a2a12; color: #ffc78a; }
+  .badge.good { background: #11303f; color: #7dd3ff; }
+  .verdicts { list-style: none; margin: 0.85rem 0 0; padding: 0; }
+  .verdicts li {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    color: #d7e4ec;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 0.25rem 0;
+  }
+  .v {
+    flex: 0 0 auto;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .v.yes { background: #14532d; color: #86efac; }
+  .v.no { background: #4a1d1d; color: #fca5a5; }
+  .summary-card .note {
+    margin-top: 1.1rem;
+    color: #ffc78a;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+  figcaption { margin-top: 0.5rem; font-size: 0.85rem; color: var(--fg-muted); }
+  @media (min-width: 720px) {
+    .runs { grid-template-columns: 1fr 1fr; }
+    .summary-card { padding: 1.5rem; }
+  }
+</style>

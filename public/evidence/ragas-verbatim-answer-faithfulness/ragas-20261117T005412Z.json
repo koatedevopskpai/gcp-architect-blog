@@ -1,0 +1,235 @@
+{
+  "run_id": "ragas-20261117T005412Z",
+  "grade": "E4",
+  "label": "judge-gpt4o-mini",
+  "judge": {
+    "model": "gpt-4o-mini",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "embedding_model": "text-embedding-3-small",
+  "dataset": {
+    "path": "services/evaluator/datasets/ragas_set.jsonl",
+    "samples": 6,
+    "sha256": "23c93e94459a7500d9bf2501f26fef99d547723c4867d5cad5d016b09b72204d",
+    "splits": [
+      "acceptance",
+      "heldout"
+    ]
+  },
+  "samples": [
+    {
+      "case_id": "o02-refund",
+      "split": "acceptance",
+      "question": "What is the refund window?",
+      "contexts": [
+        "Full refunds are available within 30 days of purchase.",
+        "Opened software is not refundable.",
+        "Customer data must be deleted within 30 days of contract termination."
+      ],
+      "retrieved_ids": [
+        "o02-refund",
+        "o02-software",
+        "heldout-retention"
+      ],
+      "answer": "The refund window is 30 days from the date of purchase.",
+      "sources": [
+        "o02-refund",
+        "o02-software",
+        "heldout-retention"
+      ],
+      "reference": "Full refunds are available within 30 days of purchase.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.8939,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 0.5058
+      }
+    },
+    {
+      "case_id": "o02-software",
+      "split": "acceptance",
+      "question": "Is opened software refundable?",
+      "contexts": [
+        "Opened software is not refundable.",
+        "Full refunds are available within 30 days of purchase.",
+        "Customer data must be deleted within 30 days of contract termination."
+      ],
+      "retrieved_ids": [
+        "o02-software",
+        "o02-refund",
+        "heldout-retention"
+      ],
+      "answer": "Opened software is not refundable.",
+      "sources": [
+        "o02-software",
+        "o02-refund",
+        "heldout-retention"
+      ],
+      "reference": "Opened software is not refundable.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.9381,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 1.0
+      }
+    },
+    {
+      "case_id": "o02-meals",
+      "split": "acceptance",
+      "question": "What is the daily meal expense limit?",
+      "contexts": [
+        "The daily meal expense limit is GBP 25.",
+        "Full refunds are available within 30 days of purchase.",
+        "Customer data must be deleted within 30 days of contract termination."
+      ],
+      "retrieved_ids": [
+        "o02-meals",
+        "o02-refund",
+        "heldout-retention"
+      ],
+      "answer": "The daily meal expense limit is GBP 25.",
+      "sources": [
+        "o02-meals",
+        "o02-refund",
+        "heldout-retention"
+      ],
+      "reference": "The daily meal expense limit is GBP 25.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 1.0
+      }
+    },
+    {
+      "case_id": "heldout-travel",
+      "split": "heldout",
+      "question": "Which travel class may I book for a three-hour flight?",
+      "contexts": [
+        "The maximum approved travel class for flights under four hours is economy.",
+        "Full refunds are available within 30 days of purchase.",
+        "The daily meal expense limit is GBP 25."
+      ],
+      "retrieved_ids": [
+        "heldout-travel",
+        "o02-refund",
+        "o02-meals"
+      ],
+      "answer": "You may book economy class for a three-hour flight.",
+      "sources": [
+        "heldout-travel",
+        "o02-refund",
+        "o02-meals"
+      ],
+      "reference": "Economy class.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 0.8956
+      }
+    },
+    {
+      "case_id": "heldout-hardware",
+      "split": "heldout",
+      "question": "How many approvers are needed for a GBP 1500 laptop?",
+      "contexts": [
+        "Hardware purchases above GBP 1000 require two approvers.",
+        "The daily meal expense limit is GBP 25.",
+        "The maximum approved travel class for flights under four hours is economy."
+      ],
+      "retrieved_ids": [
+        "heldout-hardware",
+        "o02-meals",
+        "heldout-travel"
+      ],
+      "answer": "Two approvers are needed for a GBP 1500 laptop.",
+      "sources": [
+        "heldout-hardware",
+        "o02-meals",
+        "heldout-travel"
+      ],
+      "reference": "Two approvers.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 0.9038
+      }
+    },
+    {
+      "case_id": "heldout-retention",
+      "split": "heldout",
+      "question": "When must customer data be deleted after a contract ends?",
+      "contexts": [
+        "Customer data must be deleted within 30 days of contract termination.",
+        "Full refunds are available within 30 days of purchase.",
+        "Opened software is not refundable."
+      ],
+      "retrieved_ids": [
+        "heldout-retention",
+        "o02-refund",
+        "o02-software"
+      ],
+      "answer": "Customer data must be deleted within 30 days of contract termination.",
+      "sources": [
+        "heldout-retention",
+        "o02-refund",
+        "o02-software"
+      ],
+      "reference": "Within 30 days of contract termination.",
+      "generation_mode": "provider",
+      "model": "gpt-4o-mini",
+      "scores": {
+        "faithfulness": 0.3333,
+        "answer_relevancy": 0.8259,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "answer_correctness": 0.5584
+      }
+    }
+  ],
+  "aggregate": {
+    "faithfulness": 0.8889,
+    "answer_relevancy": 0.7763,
+    "context_precision": 1.0,
+    "context_recall": 1.0,
+    "answer_correctness": 0.8106
+  },
+  "judge_usage": {
+    "prompt_tokens": 42001,
+    "completion_tokens": 3090,
+    "total_tokens": 45091,
+    "total_cost_usd": 0.007693,
+    "successful_requests": 60
+  },
+  "metric_names_returned": [
+    "answer_correctness",
+    "answer_relevancy",
+    "context_precision",
+    "context_recall",
+    "faithfulness"
+  ],
+  "duration_seconds": 86.5,
+  "limits": [
+    "six samples; a demonstration of the framework, not a benchmark",
+    "judge is a single model at one point in time, not calibrated against human labels",
+    "scores are probabilistic; repeated runs will differ",
+    "offline evaluation only \u2014 these scores do not gate promotion"
+  ]
+}
