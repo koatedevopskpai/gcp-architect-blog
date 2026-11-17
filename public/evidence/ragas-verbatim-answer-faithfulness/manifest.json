@@ -1,0 +1,41 @@
+{
+  "run_id": "ragas-receipts-and-replication-20261117",
+  "recorded_at_utc": "2026-11-17T19:19:37.947542+00:00",
+  "source_snapshot": "Two preserved historical receipts and curated evidence from two new informed replication runs",
+  "source_commit": "6c14665",
+  "source_commit_note": "6c14665 identifies the new replication source. Historical receipts predate that revision; complete historical runtime identities were not preserved.",
+  "limits": [
+    "Historical receipts have no retained claim-level traces; the new replication excerpt contains captured statements and verdicts.",
+    "The earlier missing receipt cannot be recovered; the original identical-repeat claim remains unverifiable.",
+    "The historical evaluator image was rebuilt and its earlier transport dependency versions are unavailable.",
+    "The new replication was informed, used a metering proxy and an injected token bound; it does not explain the historical score difference.",
+    "Six synthetic samples do not establish production accuracy, general determinism or a calibrated release threshold."
+  ],
+  "artifacts": [
+    {
+      "path": "correction-2026-11-17.md",
+      "sha256": "9d0149d2c3913958292786907a6ceed49d9a2c0bee15c52c04b553f1bbc45a16",
+      "bytes": 2609
+    },
+    {
+      "path": "ragas-20261117T005412Z.json",
+      "sha256": "b2bb39281fbc6bfccfe2864a87f5f79497a646a3d69585e5029a7bc08ff0efb9",
+      "bytes": 7037
+    },
+    {
+      "path": "ragas-20261117T020133Z.json",
+      "sha256": "7868294b6cd23581d29b76c4dd67a13cdab33332e884ac9953d183635e78626e",
+      "bytes": 7159
+    },
+    {
+      "path": "replication-note-2026-11-17.md",
+      "sha256": "3149ac03bdd36f6f82746d9023113406aff9e5c1209e4723c73aa884fd7c2d17",
+      "bytes": 2689
+    },
+    {
+      "path": "replication-trace-2026-11-17.json",
+      "sha256": "9b9145e991da32cb3df58008a6a1f2a22734672512bca4544efde370afc1925a",
+      "bytes": 5756
+    }
+  ]
+}

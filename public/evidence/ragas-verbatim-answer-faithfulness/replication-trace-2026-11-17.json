@@ -1,0 +1,109 @@
+{
+  "note": "Curated excerpt for publication. It is not the sealed artifact and does not replace it. Statements, verdicts and reasons are copied from the judge response recorded in the replication's meter trace; the surrounding prompts are omitted here for length.",
+  "replication": {
+    "kind": "informed replication of a previously published result",
+    "blind": false,
+    "execution_dir": "ragas/paid-exec-20261117T145834Z",
+    "paid_seal_sha256": "9080857e8888c0561b6fe38e056207addd43142b8fc0f77d14d265b945ad7caa",
+    "paid_seal_files": 59,
+    "preregistration_sha256": "ab5b830185fc76bc7f304354be3662dd5a49911a039109af5cad93a27b8a0ec0",
+    "apparatus_manifest_sha256": "76a8d888e9b18c22fa15d8e1dfbab333159f9e7cd235580df380174896c47391",
+    "runs": ["A", "B"],
+    "valid_runs": 2,
+    "provider_calls": 216,
+    "refusals": 0,
+    "unknown_outcomes": 0
+  },
+  "configuration": {
+    "judge_model_requested": "gpt-4o-mini-2024-07-18",
+    "judge_model_reported": "gpt-4o-mini-2024-07-18",
+    "embedding_model": "text-embedding-3-small",
+    "framework": "ragas==0.4.4 (legacy metric path, LangChain wrappers)",
+    "dataset_receipt_sha256": "23c93e94459a7500d9bf2501f26fef99d547723c4867d5cad5d016b09b72204d",
+    "samples": 6,
+    "top_k": 3,
+    "judge_requests_per_run": 60
+  },
+  "retention_case": {
+    "case_id": "heldout-retention",
+    "document": "Customer data must be deleted within 30 days of contract termination.",
+    "answer_run_a": "Customer data must be deleted within 30 days of contract termination.",
+    "answer_run_b": "Customer data must be deleted within 30 days of contract termination.",
+    "faithfulness": { "A": 0.3333, "B": 0.3333 },
+    "run_a": {
+      "run_id": "ragas-20261117T150227Z",
+      "label": "ragas-a-20261117T145834Z",
+      "aggregate_faithfulness": 0.8889,
+      "statements": [
+        {
+          "statement": "Customer data must be deleted.",
+          "verdict": 0,
+          "reason": "The context states that customer data must be deleted within 30 days of contract termination, which implies that deletion is necessary, but does not specify that it must be deleted without a time frame."
+        },
+        {
+          "statement": "Customer data must be deleted within 30 days.",
+          "verdict": 1,
+          "reason": "The context explicitly states that customer data must be deleted within 30 days of contract termination."
+        },
+        {
+          "statement": "Customer data must be deleted after contract termination.",
+          "verdict": 0,
+          "reason": "The context specifies that customer data must be deleted within 30 days of contract termination, which implies that deletion occurs after termination, but the statement does not specify the time frame of 'after' in relation to the 30 days."
+        }
+      ]
+    },
+    "run_b": {
+      "run_id": "ragas-20261117T150531Z",
+      "label": "ragas-b-20261117T145834Z",
+      "aggregate_faithfulness": 0.8889,
+      "statements": [
+        {
+          "statement": "Customer data must be deleted.",
+          "verdict": 0,
+          "reason": "The context states that customer data must be deleted within 30 days of contract termination, which implies that deletion is required, but does not specify a timeframe or condition for deletion alone."
+        },
+        {
+          "statement": "Customer data must be deleted within 30 days.",
+          "verdict": 1,
+          "reason": "The context explicitly states that customer data must be deleted within 30 days of contract termination, making this statement directly inferable."
+        },
+        {
+          "statement": "Customer data must be deleted after contract termination.",
+          "verdict": 0,
+          "reason": "The context specifies that customer data must be deleted within 30 days of contract termination, which implies that deletion occurs after termination, but the statement does not specify the timeframe, making it less precise."
+        }
+      ]
+    }
+  },
+  "agreement_between_runs": {
+    "per_case_equal_at_4dp": {
+      "faithfulness": "6/6",
+      "context_precision": "6/6",
+      "context_recall": "6/6",
+      "answer_relevancy": "4/6",
+      "answer_correctness": "3/6"
+    },
+    "aggregates": {
+      "A": { "faithfulness": 0.8889, "answer_relevancy": 0.7702, "context_precision": 1.0, "context_recall": 1.0, "answer_correctness": 0.8439 },
+      "B": { "faithfulness": 0.8889, "answer_relevancy": 0.7763, "context_precision": 1.0, "context_recall": 1.0, "answer_correctness": 0.8606 }
+    }
+  },
+  "deviations": [
+    "All provider paths were routed through a local metering proxy that held the credential; the historical runs called the provider directly.",
+    "The proxy injected max_tokens=16384 into judge requests because the evaluator sends none. Largest completion across 132 chat calls was 203 tokens and every call finished with reason 'stop'.",
+    "Computed cost comes from the listed rate table with a 2x conservative multiplier. It is not a provider invoice."
+  ],
+  "cost_computed_not_invoiced": {
+    "nominal_usd": { "A": 0.008213, "B": 0.008264, "total": 0.016477 },
+    "conservative_2x_usd": 0.032954,
+    "accounting_bound_usd": 0.25,
+    "invoice_available": false
+  },
+  "limits": [
+    "Informed replication: the published numbers were known before these runs, so this is not a blind result.",
+    "Two runs, one judge snapshot, six synthetic samples, one point in time.",
+    "The historical claim-level trace does not exist; these traces describe these runs only.",
+    "No unsupported-answer measurements were made, so no discrimination or error-rate claim follows.",
+    "The dataset hash shown is the runner's newline-normalised receipt hash; historical file bytes are unavailable."
+  ]
+}

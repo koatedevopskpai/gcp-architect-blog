@@ -1,0 +1,175 @@
+---
+title: "A verbatim answer scored 0.33. This time, I kept the judge's trace."
+description: "A verbatim answer scored 0.3333 in two new runs. Captured statements and verdicts explain the arithmetic, while the historical discrepancy remains unresolved."
+category: "data-mlops"
+cloud: "aws"
+tags:
+  [
+    "rag",
+    "ragas",
+    "llm-evaluation",
+    "faithfulness",
+    "llm-as-judge",
+    "evaluation",
+    "python",
+  ]
+publishDate: 2026-11-17
+draft: false
+impact: 5
+demand: 5
+confidence: 4
+effort: 4
+proofTier: 1
+requiresOrg: false
+evidenceLabel: "Local run · live provider APIs"
+codeRepo: "https://github.com/koatedevopskpai/ai-platform-proof"
+ogImage: "/og/026-ragas-verbatim-answer-faithfulness.png"
+---
+
+import RagasRunComparison from "../../../components/RagasRunComparison.astro";
+
+## The answer was a copy
+
+RAG systems answer questions using retrieved documents. RAGAS can use a language model to assess whether an answer is supported by those documents. Here, faithfulness means the fraction of extracted claims marked as supported.
+
+The question: *When must customer data be deleted after a contract ends?*
+
+The document: *Customer data must be deleted within 30 days of contract termination.*
+
+The answer: *Customer data must be deleted within 30 days of contract termination.*
+
+Character for character. RAGAS scored it **0.3333** in a saved run on 17 November, **0.6667** in a
+later one, and then **0.3333 again** in two fresh runs I did specifically to find out what the judge was
+doing.
+
+The difference this time is not the score. It is that I kept the trace.
+
+<RagasRunComparison />
+
+## What the new trace shows
+
+This time I wrote down the rules before spending anything: two runs, fixed call bounds, a decision rule
+stated in advance, and the raw outputs sealed before I wrote any analysis. Both runs met the preregistered validity rules: all six cases were answered in provider mode through the meter, scoring completed with numeric faithfulness for every case, and there were no meter refusals or budget aborts.
+
+The evaluation used `ragas==0.4.4` with judge `gpt-4o-mini-2024-07-18`. Both new runs scored the verbatim answer **0.3333**. This time, the retained trace explains the arithmetic.
+
+The judge split the answer into three statements and checked each one against the context:
+
+| # | Statement | Verdict | Recorded reason (run A, quoted) |
+|---|---|---:|---|
+| 1 | “Customer data must be deleted.” | **0** | “The context states that customer data must be deleted within 30 days of contract termination, which implies that deletion is necessary, but does not specify that it must be deleted without a time frame.” |
+| 2 | “Customer data must be deleted within 30 days.” | **1** | “The context explicitly states that customer data must be deleted within 30 days of contract termination.” |
+| 3 | “Customer data must be deleted after contract termination.” | **0** | “The context specifies that customer data must be deleted within 30 days of contract termination, which implies that deletion occurs after termination, but the statement does not specify the time frame of ‘after’ in relation to the 30 days.” |
+
+One supported statement out of three. Faithfulness = 1/3 = 0.3333.
+
+Run B produced the same three statements and the same verdicts (0, 1, 0), with the reasons worded
+differently. Both runs are in the evidence bundle; the excerpt quoted here is run A.
+
+### Why I question these verdicts
+
+The reason for statement 1 acknowledges that the context implies deletion is necessary, then marks the statement unsupported because it omits the time frame. Under an ordinary reading, requiring deletion within a deadline also requires deletion; a weaker claim need not repeat every qualification to be supported.
+
+There is also an inconsistency worth inspecting. The accepted statement, “Customer data must be deleted within 30 days,” omits the contract-termination condition. The judge accepts that omission while citing missing timing detail as a reason to reject the other statements.
+
+Those recorded reasons look questionable. They do not establish that the metric intentionally uses a defensible, stricter form of entailment, or prove a general prompt defect. The trace shows how this score was assembled and gives us specific judgements to investigate.
+
+## Why I ran the evaluation again
+
+The two surviving historical receipts recorded retention faithfulness **0.3333 at 00:54:12 UTC** and **0.6667 at 02:01:33 UTC** on 17 November 2026. Their recorded question, answer, ordered contexts, reference and dataset hash match. Their six-sample faithfulness means were 0.8889 and 0.9444.
+
+While preparing this article, I checked an assertion in my earlier draft notes that the scores had repeated identically. **The retained evidence does not verify that assertion.** The runner writes `ragas-<label>.json`, allowing reused labels to overwrite receipts. The earlier receipt that would have let me check that comparison is no longer available; timestamps alone cannot recover its contents or establish the scores it held.
+
+The project notes also cited a revision from before the RAGAS integration. The evaluator image was rebuilt between the surviving runs, and the earlier runtime was not fully preserved. Neither historical receipt contains extracted statements, verdicts or judge responses.
+
+The new informed replication answers a narrower question: can the low score occur again, and what does the judge return this time? It does not recover the historical trace or explain the historical difference.
+
+## What the trace does and does not explain
+
+**It explains the number.** The score is the ratio of supported statements to extracted statements, and
+the trace shows 1 of 3.
+
+**It does not explain the history.** These are new runs against a new build, through a proxy, with an
+injected token bound. The historical 0.3333 and 0.6667 remain unexplained, and their traces are gone.
+
+**It does not generalise.** One judge, one model snapshot, six synthetic samples, one task. Three
+statements is not a sample of the judge's behaviour; it is one decomposition of one sentence.
+
+## What repeated, and what did not
+
+Two runs, identical recorded inputs, separate fresh services and databases:
+
+| Metric | Agreement across the six cases (4 dp) |
+|---|---|
+| Faithfulness | **6/6** |
+| Context precision | **6/6** |
+| Context recall | **6/6** |
+| Answer relevancy | 4/6 — refund 0.8939 vs 0.8938; retention 0.7891 vs 0.8258 |
+| Answer correctness | 3/6 — refund 0.7058 vs 0.8058; travel 0.8956 vs 0.8958; retention 0.5583 vs 0.5584 |
+
+Aggregates, reported separately and never averaged: faithfulness 0.8889 in both; relevancy 0.7702 and
+0.7763; correctness 0.8439 and 0.8606; precision and recall 1.0 throughout.
+
+Faithfulness agreed at the recorded precision in these two new runs, while two other metrics changed. That observation does not establish general determinism or rule out stochastic variation in other runs.
+
+## The threshold, narrowly
+
+At a threshold of 0.8, this known-supported answer fails in every run I have — historical and new. That
+is a concrete reason not to adopt this configuration as a promotion gate without calibration.
+
+It does **not** show that no useful threshold exists. I have never measured how unsupported answers
+score in this configuration, so I have no false-accept or false-reject rate, and I am not going to
+reason my way to one. Six correct examples tell you about one tail, not about discrimination.
+
+## Contract checks are not a quality gate
+
+The provider-mode acceptance gate does not call a model judge. It checks observable parts of the
+release contract: the response reports provider generation rather than fallback, token usage is
+present, cited document IDs match the retrieved set and include the expected source, required fixture
+phrases are present and forbidden phrases absent, and the response is not truncated at the token cap.
+
+For the refund fixture the actual predicates are: require `30 days`, forbid `unlimited` and
+`never permitted`. Those are the fixture's real checks, taken from
+[`acceptance-live.json`](https://github.com/koatedevopskpai/ai-platform-proof/blob/6c14665/scripts/release/acceptance-live.json),
+not a test of reasoning or answer quality.
+
+They catch specific contract failures and can accept an answer that contains the required words while
+being wrong in another way. Quality scoring stays in reporting, published per sample, with its known
+scoring discrepancies attached. A quality regression can escape these contract checks, so they do not replace per-sample review or a separately validated quality assessment.
+
+## Deviations, and why this is an informed replication
+
+I knew the published numbers before I ran this. An informed replication is weaker evidence than a blind one, but it is what I had to work with.
+
+The apparatus also differs from the historical configuration in ways that matter:
+
+- **Proxy.** Every provider path went through a local metering proxy that held the key. Nothing else
+  did.
+- **Requested judge model.** The historical receipts record the alias `gpt-4o-mini`. The new runs requested `gpt-4o-mini-2024-07-18` and recorded that snapshot in the responses. This changes the requested identifier; it does not establish whether the earlier alias resolved to a different underlying model.
+- **Injected token bound.** The proxy added `max_tokens=16384` to the 120 judge calls (60 per run); the 12 service-generation calls kept their own limit. The largest completion across all 132 chat calls was 203 tokens, and every call ended with `stop`. Nothing was reported as truncated, but the judge requests were changed.
+- **Dataset identity** is established through the runner's newline-normalised hash, which matches the
+  receipt; the historical file's bytes are not available for comparison.
+- **Cost is computed, not invoiced.** Two runs cost about $0.016 nominal from the rate table, $0.033 at
+  the conservative 2× accounting bound. There is no provider invoice to check that against.
+
+## Evidence
+
+- Historical receipts, unchanged and hash-verified, and their dated correction are in the [evidence manifest](/evidence/ragas-verbatim-answer-faithfulness/manifest.json). The [source revision](https://github.com/koatedevopskpai/ai-platform-proof/tree/6c1466565502053931adbf72605bba70a2895a76) identifies the replication code; the historical receipts were originally git-ignored, not files available at that commit.
+- New runs: sealed outputs, the preregistration and its hash, the deviations note, and a curated trace
+  excerpt with the statements, verdicts and reasons —
+  [evidence bundle and manifest](/evidence/ragas-verbatim-answer-faithfulness/manifest.json).
+- The replication's combined report, with both seals, is held locally by me; the excerpts here are the parts that bear on this article. The paid-phase seal is `9080857e…d7caa` ([full SHA-256 in the replication note](/evidence/ragas-verbatim-answer-faithfulness/replication-note-2026-11-17.md)). That seal covers the locally held raw files; the public bundle contains curated excerpts.
+
+## What this does not establish
+
+- **That RAGAS is broken.** These observations concern one configuration and a small synthetic dataset, not the framework as a whole.
+- **That all LLM judges are unreliable.** One judge, one snapshot, six samples.
+- **The historical cause.** New runs, new build; the old trace is gone.
+- **That a threshold cannot work.** No unsupported-answer measurements exist here.
+- **Anything about production accuracy.** Synthetic fixtures, local containers, provider APIs.
+- **A blind result.** The published numbers were known before these runs.
+- **Invoice spend.** Computed cost only.
+
+What it does establish is narrower and, for me, more useful: an answer that is a copy of its own source
+can score one third faithful, twice, and now I can show exactly which statements the judge discounted
+and quote its recorded reasons. That makes the result inspectable; it does not prove a general root cause or validate the rest of the pipeline.
