@@ -279,3 +279,29 @@ topics:
     proofTier: 2
     requiresOrg: false
     note: "Draft in src/content/posts/sre-reliability/007-operating-ai-worker-on-azure.mdx; publish only after live Azure checks and measured costs."
+
+  - id: "026"
+    title: "A verbatim answer scored 0.33 faithfulness: what RAGAS cannot see"
+    category: "data-mlops"
+    cloud: "aws"
+    status: "planned"
+    impact: 5
+    demand: 5
+    confidence: 5
+    effort: 3
+    proofTier: 1
+    requiresOrg: false
+    note: "Source: src/content/posts/data-mlops/026-ragas-verbatim-answer-faithfulness.mdx. Measured on ragas 0.4.4 against a live provider; per-sample false negatives reproduced across two runs. Pending publication review."
+
+  - id: "027"
+    title: "Two cost meters disagreed by 6% on the same 60 judge calls"
+    category: "finops"
+    cloud: "aws"
+    status: "planned"
+    impact: 5
+    demand: 4
+    confidence: 5
+    effort: 3
+    proofTier: 1
+    requiresOrg: false
+    note: "Source: src/content/posts/finops/027-two-cost-meters-six-percent.mdx. Two cost figures for one evaluation run; ledger treated as authoritative on auditability, not on proven invoice accuracy. Pending publication review."

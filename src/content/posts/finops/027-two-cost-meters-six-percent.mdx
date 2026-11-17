@@ -1,0 +1,190 @@
+---
+title: "Two cost meters disagreed by 6% on the same 60 judge calls"
+description: "Same 60 calls, identical token counts, two different totals. Why I kept both numbers, which one I treat as authoritative, and the unpriced-calls bug that nearly made the run look free."
+category: "finops"
+cloud: "aws"
+tags:
+  [
+    "finops",
+    "llm-cost",
+    "token-accounting",
+    "observability",
+    "ragas",
+    "evaluation",
+    "ai-platform",
+  ]
+publishDate: 2026-11-17
+draft: false
+impact: 5
+demand: 4
+confidence: 5
+effort: 3
+proofTier: 1
+requiresOrg: false
+series: "measuring-rag-honestly"
+seriesOrder: 2
+codeRepo: "https://github.com/koatedevopskpai/ai-platform-proof"
+ogImage: "/og/027-two-cost-meters-six-percent.png"
+---
+
+## The two numbers
+
+```text
+judge calls:        60
+tokens:             45,043   (identical in both measurements)
+LangChain callback: $0.007665
+ledger:             $0.0081258
+difference:         5.7% of the ledger figure, 6.0% relative to the callback
+```
+
+Same calls. Same token counts, exactly. Two totals that disagree.
+
+Neither number came from a spreadsheet. Both were computed by code I wrote, in the same process, over
+the same 60 requests. One of them is wrong, or they price different things and neither says which.
+
+<figure style={{ margin: "1.5rem 0" }}>
+  <a href="/images/two-cost-meters-six-percent/two-meters.svg">
+    <img
+      src="/images/two-cost-meters-six-percent/two-meters.svg"
+      width="800"
+      height="520"
+      alt="Two panels comparing the same 60 judge calls: the LangChain callback reports 0.007665 dollars and the token ledger reports 0.0081258 dollars, with identical token counts of 45,043. A chip between them reads six percent apart."
+      decoding="async"
+      style={{ display: "block", width: "100%", height: "auto" }}
+    />
+  </a>
+  <figcaption style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginTop: "0.5rem" }}>
+    Illustrated summary of one evaluation run. Both figures cover the same 60 calls and the same
+    token count; the gap is rate application, not usage. Select the image to view it at full size.
+  </figcaption>
+</figure>
+
+## Why there were two meters at all
+
+The platform already had a token ledger: every provider call the service makes emits one record with
+attribution, token counts, and the rate used. That worked because every call went through one HTTP
+client.
+
+RAGAS did not. It drove its judge through LangChain, which has its own client, so evaluation spend
+never touched the ledger at all. The run was expensive and looked cheap, because the expensive part
+was invisible:
+
+> Judge spend was **98.4%** of the run's total cost and appeared nowhere in the cost data.
+
+So I registered a `BaseCallbackHandler` on the judge model. It writes the same event shape into the
+same ledger — `component: evaluator`, `operation: eval.judge`, the run label attached. Now the judge
+spend was visible. And now there were two meters, because LangChain already knows what it spent.
+
+Two independent measurements of one quantity is normally a gift. Here it was a 6% disagreement.
+
+## Tokens matched, so this is not a usage problem
+
+This is the useful part of the diagnostic. If two totals disagree, the first question is whether they
+counted the same thing. They did: 45,043 tokens, identical, both sides.
+
+So the difference is **rate application** — what each meter multiplied those tokens by. The ledger
+stores the rate and the rate-table version on every record, so its arithmetic is auditable after the
+fact. The callback's figure implies an effective rate below the published list price, most likely
+cached-input pricing. I have not proven that; what I can prove is that the totals diverge while the
+token counts do not.
+
+That distinction is worth stating plainly, because "our cost numbers disagree" is unactionable, while
+"the token counts agree and the rate application differs" tells you exactly which line of code to
+audit.
+
+## Choosing an authority instead of an average
+
+The tempting move is to average the two, or to pick the cheaper one, or to quietly delete the meter
+that produced the awkward number. All three destroy the information.
+
+I kept both and made one of them authoritative, on a stated criterion:
+
+| Question | Ledger | Callback |
+|---|---|---|
+| Does it record the rate used? | **Yes**, per record, with a version | No — rate is internal to the library |
+| Can a past entry be re-justified without today's prices? | **Yes** | No |
+| Does it share a schema with service spend? | **Yes** | No |
+| Is it complete? | Yes, once the callback writes to it | Judge calls only |
+
+The ledger wins on auditability, not on accuracy — I cannot show it is closer to the invoice, because
+neither is an invoice. The callback figure is retained as a cross-check and is published beside it.
+
+**The gap is the product.** A single number would have been wrong by an unknown amount and nobody
+would ever have known. Two numbers, with the difference named, is the honest version.
+
+## The near-miss that had nothing to do with the 6%
+
+While instrumenting this, all 60 calls were first recorded **unpriced**, with `cost_usd: null`.
+
+The cause: OpenAI reports the dated snapshot `gpt-4o-mini-2024-07-18`, while my rate table is keyed on
+the alias `gpt-4o-mini`. No match, no price. Sixty calls would have totalled $0.00 — and a run that
+appears free is worse than a run that appears expensive, because nobody investigates free.
+
+The ledger already had a rule for this: **unpriced is loud**. Every rollup reports `unpriced_calls`
+separately rather than folding unknowns in as zero. That rule is why the problem surfaced in minutes
+instead of after someone asked why the AI bill had no line for evaluation.
+
+The fix keeps both facts: a trailing `-YYYY-MM-DD` is normalised to the family alias for **pricing**,
+while the reported snapshot name stays in the record for **attribution**. Cost uses the alias rate;
+the audit trail still says which dated model was actually called.
+
+## Three ways an LLM cost number lies
+
+This run produced one of each, which is why it was worth writing up.
+
+| Failure | What it looks like | What catches it |
+|---|---|---|
+| **Invisible** | Spend exists but no record does — the judge was 98.4% of the bill and absent | Instrumenting every path, not just the obvious client |
+| **Zero** | A model missing from the rate table is priced at nothing and the run looks cheap | `unpriced_calls` counted separately; never default a missing price to 0 |
+| **Disagreed** | Two meters, same tokens, different totals | Computing the number twice and publishing the gap |
+
+Only the third is caught by having a second meter. The first two are caught by rules that make silence
+expensive.
+
+## What I do now
+
+1. **Instrument the paths you did not write.** Anything that calls a provider through a framework is a
+   cost blind spot until proven otherwise.
+2. **Store the rate with the record.** Recomputing cost from today's prices rewrites history every
+   time a provider changes them.
+3. **Make missing prices loud.** A null with a reason beats a zero that reads as success.
+4. **Compute twice where it matters.** A second meter is only useful if you keep both numbers and
+   reconcile deliberately.
+5. **Name the authority and the criterion.** "Ledger is authoritative because it stores the rate and
+   its version" is a decision someone can review. "We use the ledger" is not.
+
+## What this does not establish
+
+- **Invoice accuracy.** Both figures are computed from a rate table. Neither is a bill. The real check
+  is a provider invoice, which this lab does not have.
+- **A cause for the 6%.** Cached-input pricing is the likely explanation and remains unproven.
+- **Portability.** One provider, one judge, one run of 60 calls.
+- **A production cost store.** The ledger is an append-only local JSONL file with no rotation or
+  retention policy.
+- **Perfect internal consistency.** Two receipts for this evaluation exist at different source
+  revisions, and their token totals differ by 48 (45,091 and 45,043). I have not reconciled that.
+  Each post in this series quotes its own receipt rather than editing them into agreement.
+
+## Reproduce
+
+```sh
+# evaluation; the callback writes to the same ledger as the service
+docker run --rm --network ragaseval --entrypoint python \
+  -v "$PWD:/src" -w /src \
+  -e RAG_API_URL=http://ragas-api:8000 \
+  -e TOKEN_LEDGER_PATH=/src/artifacts/token-ledger.jsonl \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  ai-platform-proof-evaluator scripts/experiments/ragas_eval.py --label judge-gpt4o-mini
+
+# what the ledger says, by run label
+curl -s "http://localhost:8000/costs?group_by=label"
+```
+
+The receipt with both cost figures, the per-record schema and the unpriced-call incident is in
+[`evidence/token-economics.md`](https://github.com/koatedevopskpai/ai-platform-proof/blob/main/evidence/token-economics.md).
+
+## Previous in this series
+
+The same evaluation also produced three false negatives from the judge that scored it —
+including a **0.3333 faithfulness for an answer copied verbatim from its own context**:
+[A verbatim answer scored 0.33 faithfulness](/posts/data-mlops/026-ragas-verbatim-answer-faithfulness/).
