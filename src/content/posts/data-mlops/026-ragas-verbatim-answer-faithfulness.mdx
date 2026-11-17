@@ -1,0 +1,233 @@
+---
+title: "A verbatim answer scored 0.33 faithfulness: what RAGAS cannot see"
+description: "RAGAS rated an answer character-identical to its retrieved context one-third faithful. Six samples, two runs, the same result — and why that is not a bug in my code."
+category: "data-mlops"
+cloud: "aws"
+tags:
+  [
+    "rag",
+    "ragas",
+    "llm-evaluation",
+    "faithfulness",
+    "llm-as-judge",
+    "evaluation",
+    "python",
+  ]
+publishDate: 2026-11-17
+draft: false
+impact: 5
+demand: 5
+confidence: 5
+effort: 3
+proofTier: 1
+requiresOrg: false
+series: "measuring-rag-honestly"
+seriesOrder: 1
+codeRepo: "https://github.com/koatedevopskpai/ai-platform-proof"
+ogImage: "/og/026-ragas-verbatim-answer-faithfulness.png"
+---
+
+## The result
+
+```text
+document:     Customer data must be deleted within 30 days of contract termination.
+answer:       Customer data must be deleted within 30 days of contract termination.
+faithfulness: 0.3333
+```
+
+The answer is character-identical to its retrieved context. RAGAS calls it one third faithful.
+
+This came out of a real evaluation on 17 November 2026: `ragas==0.4.4`, judge `gpt-4o-mini`,
+embeddings `text-embedding-3-small`, six samples, with answers produced by the running service in
+provider mode rather than read from a stored dataset. Scoring stored answers is a trap I had already
+fallen into once — you end up grading text that the current build may no longer produce.
+
+<figure style={{ margin: "1.5rem 0" }}>
+  <a href="/images/ragas-verbatim-answer-faithfulness/faithfulness-six-samples.svg">
+    <img
+      src="/images/ragas-verbatim-answer-faithfulness/faithfulness-six-samples.svg"
+      width="800"
+      height="520"
+      alt="Bar chart of RAGAS faithfulness across six samples: five samples score 1.0 and one, heldout-retention, scores 0.3333. A dashed line marks the aggregate of 0.8889, which sits above the single failing sample."
+      decoding="async"
+      style={{ display: "block", width: "100%", height: "auto" }}
+    />
+  </a>
+  <figcaption style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginTop: "0.5rem" }}>
+    Illustrated summary of one evaluation run. Five of six samples scored 1.0; the aggregate of
+    0.8889 describes a distribution no single answer had. Select the image to view it at full size.
+  </figcaption>
+</figure>
+
+## The aggregate looked fine
+
+| Metric | Aggregate |
+|---|---|
+| Faithfulness | **0.8889** |
+| Answer relevancy | 0.7763 |
+| Context precision | 1.0 |
+| Context recall | 1.0 |
+| Answer correctness | 0.8106 |
+
+Faithfulness 0.89, context precision 1.0, recall 1.0. That is a slide. If I had stopped at the
+aggregate table and written "retrieval and grounding validated", the post would have been short,
+confident and wrong.
+
+## Where the 0.33 came from
+
+| Case | Split | Faithfulness | Answer relevancy | Answer correctness |
+|---|---|---|---|---|
+| `o02-refund` | acceptance | 1.0 | 0.8939 | 0.5058 |
+| `o02-software` | acceptance | 1.0 | 0.9381 | 1.0 |
+| `o02-meals` | acceptance | 1.0 | 1.0 | 1.0 |
+| `heldout-travel` | heldout | 1.0 | **0.0** | 0.8956 |
+| `heldout-hardware` | heldout | 1.0 | 1.0 | 0.9038 |
+| `heldout-retention` | heldout | **0.3333** | 0.8259 | 0.5584 |
+
+Five samples scored 1.0. One scored 0.3333. The mean of those six numbers is 0.8889 — arithmetic that
+is correct and reporting that is useless. **No answer in that run was 89% faithful.** Five were fully
+faithful; one was, by the metric's own account, a third faithful.
+
+That is the general failure of reporting a mean over a small sample: it produces a value that no
+observation took, and the reader has no way to know a tail exists. With 600 samples it would be a
+reasonable summary. With six it is a fiction with a decimal point.
+
+## What faithfulness computes, and what I did not measure
+
+RAGAS faithfulness decomposes the answer into individual statements, checks each one against the
+retrieved context, and returns supported statements divided by total statements. It is a ratio, so it
+is sensitive to the decomposition: a single sentence has to be split into claims before any of them
+can be supported, and the count of those claims is not something I control.
+
+I did not instrument the decomposition step. So I can describe what the metric returned and I cannot
+prove why it returned it. What I can prove is narrower and more useful: the same input text, scored
+twice, produced 0.3333 both times.
+
+## It is not noise
+
+Two independent runs. Faithfulness, context precision, context recall and answer correctness came back
+**identical** in both; answer relevancy moved by 0.006 in aggregate. A judge that is wrong is not
+necessarily a judge that is unstable, and this one was consistently wrong on the same inputs.
+
+That distinction matters for how you react. Noise you fix with more samples. A systematic error you
+fix by not using the metric for that decision.
+
+## Two more false negatives in the same run
+
+**Answer relevancy 0.0 for a correct answer.**
+
+```text
+question: Which travel class may I book for a three-hour flight?
+answer:   You may book economy class for a three-hour flight.
+score:    0.0
+```
+
+**Answer correctness 0.5058 for a correct paraphrase.**
+
+```text
+reference: Full refunds are available within 30 days of purchase.
+answer:    The refund window is 30 days from the date of purchase.
+score:     0.5058
+```
+
+Three false negatives in six samples, across three different metrics. All three reproduced.
+
+## The threshold argument
+
+Here is the part that turned this from an interesting observation into a design constraint.
+
+Suppose I gate releases on faithfulness at 0.8 — a common default. The verbatim answer scores 0.3333
+and is blocked. The gate would reject a correct answer that is literally a copy of its own context,
+which means it would reject good work often enough to be turned off within a month.
+
+Now suppose I tune the threshold down until the verbatim answer passes. At 0.3, what does the gate
+still catch? Almost nothing. A gate calibrated to admit a false negative near the floor of the scale
+has no discriminating power left.
+
+**There is no threshold that both admits the correct answer and rejects the incorrect ones.** That is
+not a tuning problem, and no amount of prompt engineering on my side fixes it, because the error is in
+the judge's decomposition of a valid answer.
+
+This is the empirical case for something that usually gets argued as taste: **do not let an
+uncalibrated LLM judge control a promotion decision.**
+
+## What I gate on instead
+
+The live acceptance gate does not call a model judge at all. It checks properties that are
+deterministic and cheap:
+
+- the answer came from a provider, not the local fallback
+- the provider returned token usage, proving the call was real
+- the cited document set matches the retrieved set exactly
+- the expected source is cited
+- required fixture phrases are present and forbidden phrases are absent
+- the answer was not truncated at the token cap
+
+None of that measures answer quality, and I am not claiming it does. It measures whether the system did
+the thing the release contract says it does. Quality scoring continues as **reporting** — published per
+sample, with its known false negatives attached — because a metric that is unreliable at a threshold
+can still be useful as a trend, provided nobody is allowed to act on a single reading.
+
+The follow-up to this post's obvious gap — is the judge reliable enough to report at all? — is a
+calibration against blind human labels. That measured **Cohen's kappa 0.51**, which is moderate: fine
+for reporting, still not fine for gating. I will write that up separately rather than compress it here.
+
+## Six things I would do in any RAG evaluation
+
+1. **Publish per-sample scores, not just aggregates.** The mean hid the only interesting row.
+2. **Run it twice before believing it.** Two runs separated systematic behaviour from noise and cost
+   about $0.008 each.
+3. **Include a control with a known answer.** A verbatim copy of the context should score 1.0 on
+   faithfulness. If your metric cannot pass that control, it is measuring something other than grounding.
+4. **Pin the framework and check which API the installed version accepts.** `ragas==0.4.4` ships two
+   metric systems; `evaluate()` only accepts the legacy one. Code from current tutorials and from the
+   0.2/0.3 era will not run unmodified.
+5. **State `strictness` explicitly.** The LangChain wrapper returns one generation, so RAGAS warned
+   "LLM returned 1 generations instead of requested 3" and scored from a single sample. It is now set
+   to 1 in code, so the behaviour is declared rather than implied.
+6. **Never gate a release on a metric you have not calibrated against a person.**
+
+## What this does not establish
+
+- **That RAGAS is a bad library.** It is a useful framework, and these numbers are reproducible with
+  it. The claim is narrower: on this data, these metrics cannot carry a release decision.
+- **Benchmark validity.** Six synthetic samples, one judge model, one point in time.
+- **The cause of 0.3333.** I did not instrument the claim decomposition, so the mechanism is described,
+  not proven.
+- **Anything about human agreement.** At the time of this run there were no human labels. That gap is
+  what the calibration work closed afterwards, and it did not rescue the metric for gating.
+
+## Reproduce
+
+```sh
+# service in provider mode
+docker run -d --name ragas-pg --network ragaseval \
+  -e POSTGRES_USER=ai -e POSTGRES_PASSWORD=ai -e POSTGRES_DB=aiplatform \
+  pgvector/pgvector:0.8.2-pg16@sha256:00ba258a66dac104fd5171074a0084462a64a1369d8513f3d0a634e2f24d15bc
+
+docker run -d --name ragas-api --network ragaseval \
+  -e DATABASE_URL="postgresql+psycopg://ai:ai@ragas-pg:5432/aiplatform" \
+  -e EMBEDDING_MODE=openai -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 -e LLM_MODEL=gpt-4o-mini \
+  ai-platform-proof-rag-api
+
+# evaluation
+docker run --rm --network ragaseval --entrypoint python \
+  -v "$PWD:/src" -w /src \
+  -e RAG_API_URL=http://ragas-api:8000 \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  ai-platform-proof-evaluator scripts/experiments/ragas_eval.py --label judge-gpt4o-mini
+```
+
+Expect roughly 60 judge requests, about $0.008, and around 90 seconds. Expect the three false
+negatives above to reproduce.
+
+The full receipt, including the aggregate table, the per-sample table and the framework-version
+findings, is in
+[`evidence/ragas-eval.md`](https://github.com/koatedevopskpai/ai-platform-proof/blob/main/evidence/ragas-eval.md).
+
+## Next in this series
+
+The same run produced two cost figures that disagreed with each other. That one turned out to be a
+more general lesson about computed numbers:
+[Two cost meters disagreed by 6% on the same 60 judge calls](/posts/finops/027-two-cost-meters-six-percent/).

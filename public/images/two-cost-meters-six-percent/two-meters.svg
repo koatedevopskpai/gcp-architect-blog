@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-label="Two cost measurements of the same 60 judge calls: LangChain callback reports 0.007665 dollars, token ledger reports 0.0081258 dollars, identical 45,043 tokens, about 6 percent apart">
+  <rect width="800" height="520" rx="16" fill="#0B1220"/>
+
+  <text x="44" y="58" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="34" font-weight="700" fill="#F8FAFC">
+    Same 60 calls, priced twice
+  </text>
+  <text x="44" y="94" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" fill="#94A3B8">
+    identical 45,043 tokens | one run
+  </text>
+
+  <!-- left panel -->
+  <rect x="44" y="124" width="332" height="168" rx="14" fill="#111C2E" stroke="#38BDF8" stroke-width="2"/>
+  <text x="70" y="166" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" fill="#94A3B8">
+    LangChain callback
+  </text>
+  <text x="70" y="220" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="44" font-weight="700" fill="#F8FAFC">
+    $0.007665
+  </text>
+  <text x="70" y="260" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="18" fill="#64748B">
+    library-side meter
+  </text>
+
+  <!-- right panel -->
+  <rect x="424" y="124" width="332" height="168" rx="14" fill="#111C2E" stroke="#FBBF24" stroke-width="2"/>
+  <text x="450" y="166" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" fill="#94A3B8">
+    Token ledger
+  </text>
+  <text x="450" y="220" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="44" font-weight="700" fill="#FDE68A">
+    $0.0081258
+  </text>
+  <text x="450" y="260" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="18" fill="#64748B">
+    stores rate and version
+  </text>
+
+  <!-- gap chip -->
+  <rect x="186" y="316" width="428" height="52" rx="26" fill="#1E293B"/>
+  <text x="400" y="350" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#F87171">
+    6.0% apart, same tokens
+  </text>
+
+  <text x="400" y="416" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="22" fill="#CBD5E1">
+    Same usage. Different rates.
+  </text>
+
+  <text x="400" y="474" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="18" fill="#64748B">
+    Ledger authoritative; callback kept as a cross-check.
+  </text>
+</svg>

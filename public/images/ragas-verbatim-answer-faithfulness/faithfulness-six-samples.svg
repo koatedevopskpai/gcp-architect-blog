@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-label="RAGAS faithfulness across six samples: five score 1.0, one scores 0.3333, aggregate 0.8889">
+  <rect width="800" height="520" rx="16" fill="#0B1220"/>
+
+  <text x="44" y="58" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="34" font-weight="700" fill="#F8FAFC">
+    RAGAS faithfulness, six samples
+  </text>
+  <text x="44" y="94" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" fill="#94A3B8">
+    ragas 0.4.4 | judge gpt-4o-mini | live answers
+  </text>
+
+  <!-- aggregate reference line at 0.8889 -->
+  <line x1="52" y1="178" x2="748" y2="178" stroke="#FBBF24" stroke-width="2" stroke-dasharray="7 7" opacity="0.75"/>
+  <text x="748" y="164" text-anchor="end" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="20" fill="#FBBF24">
+    aggregate 0.8889
+  </text>
+
+  <!-- baseline -->
+  <line x1="52" y1="402" x2="748" y2="402" stroke="#334155" stroke-width="2"/>
+
+  <!-- bars: value 1.0 => top 150 (height 252) -->
+  <rect x="69" y="150" width="62" height="252" rx="4" fill="#38BDF8"/>
+  <text x="100" y="136" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#E2E8F0">1.0</text>
+
+  <rect x="179" y="150" width="62" height="252" rx="4" fill="#38BDF8"/>
+  <text x="210" y="136" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#E2E8F0">1.0</text>
+
+  <rect x="289" y="150" width="62" height="252" rx="4" fill="#38BDF8"/>
+  <text x="320" y="136" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#E2E8F0">1.0</text>
+
+  <rect x="399" y="150" width="62" height="252" rx="4" fill="#38BDF8"/>
+  <text x="430" y="136" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#E2E8F0">1.0</text>
+
+  <rect x="509" y="150" width="62" height="252" rx="4" fill="#38BDF8"/>
+  <text x="540" y="136" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#E2E8F0">1.0</text>
+
+  <!-- 0.3333 => height 84, top 318 -->
+  <rect x="619" y="318" width="62" height="84" rx="4" fill="#F87171"/>
+  <text x="650" y="304" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#FCA5A5">0.333</text>
+
+  <!-- category labels -->
+  <g font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" fill="#94A3B8" text-anchor="middle">
+    <text x="100" y="432">refund</text>
+    <text x="210" y="432">software</text>
+    <text x="320" y="432">meals</text>
+    <text x="430" y="432">travel</text>
+    <text x="540" y="432">hardware</text>
+    <text x="650" y="432">retention</text>
+  </g>
+
+  <text x="650" y="464" text-anchor="middle" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="20" fill="#F87171">
+    verbatim copy
+  </text>
+
+  <text x="44" y="500" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="18" fill="#64748B">
+    Five samples at 1.0, one at 0.3333.
+  </text>
+</svg>
